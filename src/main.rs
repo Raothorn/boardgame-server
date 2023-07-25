@@ -1,81 +1,164 @@
 #![allow(dead_code)]
 
 mod game_state {
-    pub struct GameState {
-        pub players: Vec<Player>,
-        pub deck: AbilityCardDeck,
-        pub room: ShipRoom
+    struct GameState {
+        players: Vec<Player>,
+        crew: Vec<Crew>,
+        deck: AbilityCardDeck,
+        room: ShipRoom,
     }
 
     impl GameState {
-        pub fn init_state() -> GameState {
+        fn init_state() -> GameState {
             GameState {
                 players: Vec::new(),
+                crew: vec![
+                    Crew { name: String::from("Sofi Odessa"), fatigue: 0},
+                    Crew { name: String::from("Laurant Lapointe"), fatigue: 0}
+                ],
                 deck: AbilityCardDeck { cards: Vec::new() },
-                room: ShipRoom::Galley
+                room: ShipRoom::None
             }
+        }
+
+        fn add_player(&mut self, player: Player) {
+            self.players.push(player);
         }
     }
 
-    pub struct AbilityCardDeck {
-        cards: Vec<AbilityCard>
+    struct Crew {
+        name: String,
+        fatigue: usize,
     }
 
-    pub struct AbilityCard {
-        name: String 
+    struct AbilityCardDeck {
+        cards: Vec<AbilityCard>,
     }
 
-    pub struct Player {
+    impl AbilityCardDeck {
+        fn draw_card(&mut self) -> Option<AbilityCard> {
+            self.cards.pop()
+        }
+    }
+
+    #[derive (PartialEq, Eq, Debug, Clone)]
+    struct AbilityCard {
+        name: String,
+    }
+
+    #[derive(Default)]
+    struct Player {
         command_tokens: u32,
-        hand: Vec<AbilityCard>
+        hand: Vec<AbilityCard>,
+    }
+
+    impl Player {
+        fn add_card(&mut self, card: AbilityCard) {
+            self.hand.push(card);
+        }
     }
 
     struct GameManager {
         state: GameState,
     }
 
-    #[derive(Clone, Copy)]
-    pub enum ShipRoom {
+    #[derive(Clone, Copy, PartialEq)]
+    enum ShipRoom {
         Galley,
         Bridge,
-        Deck
-    }
-}
-
-mod actions {
-    use super::game_state;
-    use super::game_state::GameState;
-    pub trait Action {
-        fn execute(&self, state:&mut game_state::GameState);
-
+        Deck,
+        None
     }
 
-    pub struct TakeShipAction {
-        pub room: game_state::ShipRoom
-    }
+    mod actions {
+        use super::{GameState, Player, ShipRoom};
 
-    impl Action for TakeShipAction{
-        fn execute(&self, state:&mut GameState) {
-            state.room = self.room;
+        trait Action {
+            fn execute(&self, state: &mut GameState);
+            fn invalid(&self, state: &GameState) -> Option<String>;
         }
-    }
 
-}
+        struct TakeShipAction {
+            room: super::ShipRoom,
+            player_ix: usize
+        }
 
-#[cfg(test)]
-mod tests {
-    use super::game_state::*;
-    use super::actions::*;
-    use super::actions::Action;
+        impl TakeShipAction {
+            fn bridge_action(&self, state: &mut GameState) {
+                let player = &mut state.players[self.player_ix];
+                player.command_tokens += 3;
 
-    #[test]
-    fn test_take_ship_action() {
-        let mut state = GameState::init_state();
+                // TODO check for empty deck
+                let card = state.deck.draw_card().unwrap();
+                player.add_card(card);
+            }
+        }
 
-        let action = TakeShipAction { room: ShipRoom::Bridge };
-        action.execute(&mut state);
+        impl Action for TakeShipAction {
+            fn execute(&self, state: &mut GameState) {
+                match self.room {
+                    ShipRoom::Bridge => self.bridge_action(state),
+                    _ => ()
+                }
+                state.room = self.room;
+            }
 
-        assert!(matches!(state.room, ShipRoom::Bridge))
+            fn invalid(&self, state: &GameState) -> Option<String> {
+                if state.room == self.room {
+                    Some(String::from("You cannot visit the same room twice"))
+                }
+                else {
+                    None
+                }
+            }
+        }
+
+        #[cfg(test)]
+        mod tests {
+            use super::*;
+            use crate::game_state::{ShipRoom, AbilityCard};
+
+            #[test]
+            fn test_take_ship_action_bridge() {
+                let mut state = GameState::init_state();
+                state.add_player(Player::default());
+
+                let card = AbilityCard {name: String::from("Card 1")};
+                state.deck.cards.push(card.clone());
+
+                let action = TakeShipAction {
+                    room: ShipRoom::Bridge,
+                    player_ix: 0
+                };
+                action.execute(&mut state);
+
+                
+                // The room has changed
+                assert!(matches!(state.room, ShipRoom::Bridge));
+
+                // The player has drawn a card
+                let player_card = state.players[0].hand.first().unwrap();
+                assert_eq!(*player_card, card);
+            }
+
+            #[test]
+            fn test_cannot_use_same_ship_action() {
+                let mut state = GameState::init_state();
+                state.add_player(Player::default());
+
+                let card = AbilityCard {name: String::from("Card 1")};
+                state.deck.cards.push(card.clone());
+                state.room = ShipRoom::Bridge;
+
+                let action = TakeShipAction {
+                    room: ShipRoom::Bridge,
+                    player_ix: 0
+                };
+                let result = action.invalid(&mut state);
+
+                assert!(matches!(result, Some(_)))
+            }
+        }
     }
 }
 
