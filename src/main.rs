@@ -1,68 +1,72 @@
 #![allow(dead_code)]
 
-struct GameState {
-    players: Vec<Player>,
-    deck: AbilityCardDeck,
-    room: ShipRoom
-}
+mod game_state {
+    pub struct GameState {
+        pub players: Vec<Player>,
+        pub deck: AbilityCardDeck,
+        pub room: ShipRoom
+    }
 
-impl GameState {
-    pub fn init_state() -> GameState {
-        GameState {
-            players: Vec::new(),
-            deck: AbilityCardDeck { cards: Vec::new() },
-            room: ShipRoom::Galley
+    impl GameState {
+        pub fn init_state() -> GameState {
+            GameState {
+                players: Vec::new(),
+                deck: AbilityCardDeck { cards: Vec::new() },
+                room: ShipRoom::Galley
+            }
         }
     }
-}
 
-struct AbilityCardDeck {
-    cards: Vec<AbilityCard>
-}
+    pub struct AbilityCardDeck {
+        cards: Vec<AbilityCard>
+    }
 
-struct AbilityCard {
-    name: String 
-}
+    pub struct AbilityCard {
+        name: String 
+    }
 
-struct Player {
-    command_tokens: u32,
-    hand: Vec<AbilityCard>
-}
+    pub struct Player {
+        command_tokens: u32,
+        hand: Vec<AbilityCard>
+    }
 
-struct GameManager {
-    state: GameState,
-}
+    struct GameManager {
+        state: GameState,
+    }
 
-impl GameManager {
-    fn execute_action(&mut self, action: &impl Action) {
-        todo!();
+    #[derive(Clone, Copy)]
+    pub enum ShipRoom {
+        Galley,
+        Bridge,
+        Deck
     }
 }
 
-trait Action {
-    fn execute(&self, state:&mut GameState);
+mod actions {
+    use super::game_state;
+    use super::game_state::GameState;
+    pub trait Action {
+        fn execute(&self, state:&mut game_state::GameState);
 
-}
-
-struct TakeShipAction {
-    room: ShipRoom
-}
-
-impl Action for TakeShipAction{
-    fn execute(&self, state:&mut GameState) {
-        state.room = self.room;
     }
+
+    pub struct TakeShipAction {
+        pub room: game_state::ShipRoom
+    }
+
+    impl Action for TakeShipAction{
+        fn execute(&self, state:&mut GameState) {
+            state.room = self.room;
+        }
+    }
+
 }
 
-#[derive(Clone, Copy)]
-enum ShipRoom {
-    Galley,
-    Bridge,
-    Deck
-}
-
+#[cfg(test)]
 mod tests {
-    use super::*;
+    use super::game_state::*;
+    use super::actions::*;
+    use super::actions::Action;
 
     #[test]
     fn test_take_ship_action() {
