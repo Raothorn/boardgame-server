@@ -1,7 +1,23 @@
 #![allow(dead_code)]
 
 mod game_state {
+    enum GamePhase {
+        Start,
+        ShipAction(Option<ShipActionPhase>)
+    }
+
+    enum ShipActionPhase {
+        BridgeAction, 
+        GalleyAction{
+            gain_phase_complete: bool,
+            discard_chosen: bool,
+            discard_choice: u32,
+            crew_choice: u32
+        }
+    }
+
     struct GameState {
+        phase: GamePhase,
         players: Vec<Player>,
         crew: Vec<Crew>,
         deck: AbilityCardDeck,
@@ -11,6 +27,7 @@ mod game_state {
     impl GameState {
         fn init_state() -> GameState {
             GameState {
+                phase: GamePhase::Start,
                 players: Vec::new(),
                 crew: vec![
                     Crew { name: String::from("Sofi Odessa"), fatigue: 0},
