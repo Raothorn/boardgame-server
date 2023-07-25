@@ -1,13 +1,16 @@
 #![allow(dead_code)]
-
 mod game_state {
+    #[derive(Clone)]
     enum GamePhase {
         Start,
         ShipAction(Option<ShipActionPhase>)
     }
 
+    #[derive(Clone)]
     enum ShipActionPhase {
-        BridgeAction, 
+        BridgeAction {
+            complete: bool
+        }, 
         GalleyAction{
             gain_phase_complete: bool,
             discard_chosen: bool,
@@ -88,7 +91,7 @@ mod game_state {
     }
 
     mod actions {
-        use super::{GameState, Player, ShipRoom};
+        use super::{GameState, ShipRoom, GamePhase, ShipActionPhase};
 
         trait Action {
             fn execute(&self, state: &mut GameState);
@@ -108,8 +111,18 @@ mod game_state {
                 // TODO check for empty deck
                 let card = state.deck.draw_card().unwrap();
                 player.add_card(card);
+
+                state.phase = match state.phase {
+                        GamePhase::ShipAction(None) => {
+                            GamePhase::ShipAction(
+                                Some(ShipActionPhase::BridgeAction{
+                                     complete: (true) }))
+                        },
+                        _ => state.phase.clone()
+                };
             }
         }
+
 
         impl Action for TakeShipAction {
             fn execute(&self, state: &mut GameState) {
@@ -121,11 +134,16 @@ mod game_state {
             }
 
             fn invalid(&self, state: &GameState) -> Option<String> {
-                if state.room == self.room {
-                    Some(String::from("You cannot visit the same room twice"))
-                }
-                else {
-                    None
+                match state.phase {
+                    GamePhase::ShipAction(Some(_)) => {
+                        if state.room == self.room {
+                            Some(String::from("You cannot visit the same room twice"))
+                        }
+                        else {
+                            None
+                        }
+                    }
+                    _ => Some(String::from("Wrong phase."))
                 }
             }
         }
@@ -133,7 +151,7 @@ mod game_state {
         #[cfg(test)]
         mod tests {
             use super::*;
-            use crate::game_state::{ShipRoom, AbilityCard};
+            use crate::game_state::{ShipRoom, Player, AbilityCard};
 
             #[test]
             fn test_take_ship_action_bridge() {
