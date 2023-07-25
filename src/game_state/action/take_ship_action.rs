@@ -1,5 +1,5 @@
-use crate::game_state::{GameState, GamePhase, ShipActionPhase, ShipRoom};
 use super::Action;
+use crate::game_state::{GamePhase, GameState, ShipActionPhase, ShipRoom};
 
 struct TakeShipAction {
     room: ShipRoom,
@@ -15,33 +15,36 @@ impl TakeShipAction {
         let card = state.deck.draw_card().unwrap();
         player.add_card(card);
 
-        if let GamePhase::ShipAction(None) = state.phase {
-            state.phase = GamePhase::ShipAction(
-                Some(ShipActionPhase::BridgeAction { complete: true })
-            )
-        }
+        state.phase = GamePhase::ShipAction(
+            Some(ShipActionPhase::BridgeAction));
+
+        state.room = ShipRoom::Bridge;
+    }
+
+    fn galley_action(&self, state: &mut GameState) {
+        state.phase = GamePhase::ShipAction(
+            Some(ShipActionPhase::GalleyAction { gain_phase_complete: true })
+        );
+        state.room = ShipRoom::Galley;
     }
 }
 
 impl Action for TakeShipAction {
-    fn execute(&self, state: &mut GameState) {
-        match self.room {
-            ShipRoom::Bridge => self.bridge_action(state),
-            _ => (),
-        }
-        state.room = self.room;
-    }
-
-    fn invalid(&self, state: &GameState) -> Option<String> {
-        match state.phase {
-            GamePhase::ShipAction(Some(_)) => {
-                if state.room == self.room {
-                    Some(String::from("You cannot visit the same room twice"))
-                } else {
-                    None
+    fn execute(&self, state: &mut GameState) -> Option<String> {
+        if let GamePhase::ShipAction(None) = &state.phase {
+            if state.room == self.room {
+                Some(String::from("You cannot visit the same room twice"))
+            } else {
+                match self.room {
+                    ShipRoom::Bridge => {
+                        self.bridge_action(state);
+                        None
+                    }
+                    _ => Some(String::from("Not implemented")),
                 }
             }
-            _ => Some(String::from("Wrong phase.")),
+        } else {
+            Some(String::from("Wrong phase."))
         }
     }
 }
@@ -62,7 +65,6 @@ mod tests {
         state.deck.cards.push(card.clone());
         state.phase = GamePhase::ShipAction(None);
 
-
         let action = TakeShipAction {
             room: ShipRoom::Bridge,
             player_ix: 0,
@@ -77,10 +79,10 @@ mod tests {
         assert_eq!(*player_card, card);
 
         // The phase is complete
-        assert!(matches!(state.phase,
-             GamePhase::ShipAction(
-                Some(ShipActionPhase::BridgeAction { complete: true})
-            )));
+        assert!(matches!(
+            state.phase,
+            GamePhase::ShipAction(Some(ShipActionPhase::BridgeAction))
+        ));
     }
 
     #[test]
@@ -98,7 +100,7 @@ mod tests {
             room: ShipRoom::Bridge,
             player_ix: 0,
         };
-        let result = action.invalid(&mut state);
+        let result = action.execute(&mut state);
 
         assert!(matches!(result, Some(_)))
     }

@@ -9,14 +9,9 @@ enum GamePhase {
 
 #[derive(Clone)]
 enum ShipActionPhase {
-    BridgeAction {
-        complete: bool,
-    },
+    BridgeAction,
     GalleyAction {
         gain_phase_complete: bool,
-        discard_chosen: bool,
-        discard_choice: u32,
-        crew_choice: u32,
     },
 }
 
@@ -26,6 +21,7 @@ struct GameState {
     crew: Vec<Crew>,
     deck: AbilityCardDeck,
     room: ShipRoom,
+    prompt: Option<String>
 }
 
 impl GameState {
@@ -45,6 +41,7 @@ impl GameState {
             ],
             deck: AbilityCardDeck { cards: Vec::new() },
             room: ShipRoom::None,
+            prompt: None
         }
     }
 
@@ -55,7 +52,15 @@ impl GameState {
 
 struct Crew {
     name: String,
-    fatigue: usize,
+    fatigue: u32,
+}
+
+impl Crew {
+    fn reduce_fatigue(&mut self) {
+        if self.fatigue > 0 {
+            self.fatigue -= 1;
+        }
+    }
 }
 
 struct AbilityCardDeck {
@@ -82,6 +87,10 @@ struct Player {
 impl Player {
     fn add_card(&mut self, card: AbilityCard) {
         self.hand.push(card);
+    }
+
+    fn discard_card(&mut self, card_ix: usize) -> AbilityCard {
+        self.hand.remove(card_ix)
     }
 }
 
