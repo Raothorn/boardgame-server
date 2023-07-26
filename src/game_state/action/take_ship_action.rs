@@ -1,7 +1,10 @@
+use serde::Deserialize;
+
 use super::Action;
 use crate::game_state::{GamePhase, GameState, ShipActionPhase, ShipRoom};
 
-struct TakeShipAction {
+#[derive(Deserialize)]
+pub struct TakeShipAction {
     room: ShipRoom,
     player_ix: usize,
 }
@@ -46,6 +49,10 @@ impl Action for TakeShipAction {
         } else {
             Some(String::from("Wrong phase."))
         }
+    }
+
+    fn name(&self) -> &str {
+        "take ship action"
     }
 }
 
