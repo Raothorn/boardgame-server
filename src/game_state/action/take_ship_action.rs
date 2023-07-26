@@ -18,17 +18,16 @@ impl TakeShipAction {
         let card = state.deck.draw_card().unwrap();
         player.add_card(card);
 
-        state.phase = GamePhase::ShipAction(
-            Some(ShipActionPhase::BridgeAction));
-
+        state.phase = GamePhase::ShipActionComplete;
         state.room = ShipRoom::Bridge;
     }
 
     fn galley_action(&self, state: &mut GameState) {
-        state.phase = GamePhase::ShipAction(
-            Some(ShipActionPhase::GalleyAction { gain_phase_complete: true })
-        );
+        state.phase = GamePhase::ShipAction(Some(ShipActionPhase::GalleyAction {
+            gain_phase_complete: true,
+        }));
         state.room = ShipRoom::Galley;
+        state.prompt = Some(String::from("selectDiscardForGalleyAction"));
     }
 }
 
@@ -41,6 +40,10 @@ impl Action for TakeShipAction {
                 match self.room {
                     ShipRoom::Bridge => {
                         self.bridge_action(state);
+                        None
+                    }
+                    ShipRoom::Galley => {
+                        self.galley_action(state);
                         None
                     }
                     _ => Some(String::from("Not implemented")),

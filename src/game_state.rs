@@ -1,38 +1,34 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub mod action;
 
 #[derive(Clone, Serialize)]
 enum GamePhase {
-    Start,
     ShipAction(Option<ShipActionPhase>),
-    ShipActionComplete
+    ShipActionComplete,
 }
 
 #[derive(Clone, Serialize)]
 enum ShipActionPhase {
     BridgeAction,
-    GalleyAction {
-        gain_phase_complete: bool,
-    },
+    GalleyAction { gain_phase_complete: bool },
 }
 
 #[derive(Serialize)]
 pub struct GameState {
-    #[serde(skip)]
     phase: GamePhase,
     players: Vec<Player>,
     crew: Vec<Crew>,
     deck: AbilityCardDeck,
     room: ShipRoom,
     #[serde(skip)]
-    prompt: Option<String>
+    pub prompt: Option<String>,
 }
 
 impl GameState {
     pub fn init_state() -> GameState {
         GameState {
-            phase: GamePhase::Start,
+            phase: GamePhase::ShipAction(None),
             players: vec![Player::default()],
             crew: vec![
                 Crew {
@@ -44,9 +40,12 @@ impl GameState {
                     fatigue: 0,
                 },
             ],
-            deck: AbilityCardDeck { cards: Vec::new() },
+            deck: AbilityCardDeck { cards: vec![
+                AbilityCard { name: String::from("card 1")},
+                AbilityCard { name: String::from("card 2")},
+            ] },
             room: ShipRoom::None,
-            prompt: None
+            prompt: None,
         }
     }
 
@@ -99,10 +98,6 @@ impl Player {
     fn discard_card(&mut self, card_ix: usize) -> AbilityCard {
         self.hand.remove(card_ix)
     }
-}
-
-struct GameManager {
-    state: GameState,
 }
 
 #[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
