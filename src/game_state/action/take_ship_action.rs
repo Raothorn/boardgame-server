@@ -10,23 +10,22 @@ pub struct TakeShipAction {
 }
 
 impl TakeShipAction {
-    fn bridge_action(&self, state: &mut GameState) {
-        let player = &mut state.players[self.player_ix];
-        player.command_tokens += 3;
-
-        // TODO check for empty deck
-        let card = state.deck.draw_card().unwrap();
-        player.add_card(card);
+    fn bridge_action(&self, state: &mut GameState) {                   
+        state.give_command_tokens(self.player_ix, 3);
+        state.draw_cards(self.player_ix, 1);
 
         state.phase = GamePhase::ShipActionComplete;
         state.room = ShipRoom::Bridge;
     }
 
     fn galley_action(&self, state: &mut GameState) {
-        state.phase = GamePhase::ShipAction(Some(ShipActionPhase::GalleyAction {
-            gain_phase_complete: true,
-        }));
+        state.give_command_tokens(self.player_ix, 3);
+        state.draw_cards(self.player_ix, 2);
         state.room = ShipRoom::Galley;
+        state.phase =
+            GamePhase::ShipAction(Some(ShipActionPhase::GalleyAction {
+                gain_phase_complete: true,
+            }));
         state.prompt = Some(String::from("selectDiscardForGalleyAction"));
     }
 }

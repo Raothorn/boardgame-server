@@ -40,10 +40,16 @@ impl GameState {
                     fatigue: 0,
                 },
             ],
-            deck: AbilityCardDeck { cards: vec![
-                AbilityCard { name: String::from("card 1")},
-                AbilityCard { name: String::from("card 2")},
-            ] },
+            deck: AbilityCardDeck {
+                cards: vec![
+                    AbilityCard {
+                        name: String::from("card 1"),
+                    },
+                    AbilityCard {
+                        name: String::from("card 2"),
+                    },
+                ],
+            },
             room: ShipRoom::None,
             prompt: None,
         }
@@ -51,6 +57,24 @@ impl GameState {
 
     fn add_player(&mut self, player: Player) {
         self.players.push(player);
+    }
+
+    fn give_command_tokens(&mut self, player_ix: usize, amount: u32) {
+        if let Some(player) = self.players.get_mut(player_ix) {
+            player.command_tokens += amount;
+        }
+    }
+
+    fn draw_cards(&mut self, player_ix: usize, amount: u32) {
+        if let Some(player) = self.players.get_mut(player_ix) {
+            for _ in 0..amount {
+                let card = self.deck.draw_card();
+
+                if let Some(card) = card {
+                    player.add_card(card);
+                }
+            }
+        }
     }
 }
 
@@ -95,8 +119,16 @@ impl Player {
         self.hand.push(card);
     }
 
-    fn discard_card(&mut self, card_ix: usize) -> AbilityCard {
-        self.hand.remove(card_ix)
+    fn discard_card(
+        &mut self,
+        card_ix: usize,
+    ) -> Option<AbilityCard> {
+
+        if self.hand.len() <= card_ix {
+            None
+        } else {
+            Some(self.hand.remove(card_ix))
+        }
     }
 }
 
