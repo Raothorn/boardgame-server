@@ -184,9 +184,6 @@ pub fn run_server() {
             state.add_client(&client_addr, sender);
 
             state.broadcast_gamestate();
-            // let mut client_list = clients.lock().unwrap();
-            // client_list.push(sender);
-            // drop(client_list);
 
             for message in reciever.incoming_messages() {
                 match message {

@@ -32,6 +32,7 @@ impl TakeShipAction {
             },
         ));
 
+
         Ok(state.clone())
             .and_then(|g| g.give_command_tokens(self.player_ix, 3))
             .and_then(|g| g.draw_cards(self.player_ix, 2))

@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 pub mod action;
-
 #[derive(Clone, Serialize)]
 enum GamePhase {
     ShipAction(Option<ShipActionPhase>),
@@ -10,7 +9,6 @@ enum GamePhase {
 
 #[derive(Clone, Serialize)]
 enum ShipActionPhase {
-    BridgeAction,
     GalleyAction { gain_phase_complete: bool },
 }
 
@@ -21,6 +19,7 @@ pub struct GameState {
     crew: Vec<Crew>,
     deck: AbilityCardDeck,
     room: ShipRoom,
+    resources: Resources,
     #[serde(skip)]
     pub prompt: Option<String>,
 }
@@ -186,6 +185,13 @@ impl Player {
             Ok((player, card))
         }
     }
+}
+
+#[derive(Clone, Serialize)]
+struct Resources {
+    coins: u32,
+    grain: u32,
+    meat: u32
 }
 
 #[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
