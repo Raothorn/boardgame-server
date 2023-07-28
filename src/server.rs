@@ -21,7 +21,15 @@ struct GameManager {
 
 impl GameManager {
     fn execute_action(&mut self, action: &dyn Action) -> Option<String> {
-        action.execute(&mut self.state)
+        let res = action.execute(&self.state);
+
+        match res {
+            Ok(gs) => {
+                self.state = gs;
+                None
+            }
+            Err(err) => Some(err.to_owned()),
+        }
     }
 
     fn restart(&mut self) {
@@ -92,9 +100,10 @@ impl ServerState {
         let mut manager = self.manager.lock().unwrap();
         let action = get_action(msg);
 
-        println!("Action recieved: {}", action.name());
-        if action.name() == "no action" {
+        if action.to_string() == "" {
             println!("Empty action message: {}", msg);
+        } else {
+            println!("{}", action);
         }
 
         let result = manager.execute_action(action.as_ref());
@@ -128,7 +137,9 @@ impl ServerState {
     }
 
     fn handle_message(&self, addr: &str, msg: &str) {
+        println!("received message: {}", msg);
         let msg: Value = serde_json::from_str(msg).unwrap();
+
 
         if let Value::Object(obj) = msg {
             let msg_type = obj.get("msgType");

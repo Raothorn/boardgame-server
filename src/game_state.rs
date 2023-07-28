@@ -14,7 +14,7 @@ enum ShipActionPhase {
     GalleyAction { gain_phase_complete: bool },
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct GameState {
     phase: GamePhase,
     players: Vec<Player>,
@@ -33,7 +33,7 @@ impl GameState {
             crew: vec![
                 Crew {
                     name: String::from("Sofi Odessa"),
-                    fatigue: 0,
+                    fatigue: 1,
                 },
                 Crew {
                     name: String::from("Laurant Lapointe"),
@@ -55,30 +55,84 @@ impl GameState {
         }
     }
 
-    fn add_player(&mut self, player: Player) {
-        self.players.push(player);
+    fn add_player(&self, player: Player) -> Update {
+        let mut gs = self.clone();
+        gs.players.push(player);
+
+        Ok(gs)
     }
 
-    fn give_command_tokens(&mut self, player_ix: usize, amount: u32) {
-        if let Some(player) = self.players.get_mut(player_ix) {
+    fn give_command_tokens(
+        self,
+        player_ix: usize,
+        amount: u32,
+    ) -> Update {
+        let mut gs = self.clone();
+        if let Some(player) = gs.players.get_mut(player_ix) {
             player.command_tokens += amount;
+            Ok(gs)
+        } else {
+            Err("Player does not exist".to_owned())
         }
     }
 
-    fn draw_cards(&mut self, player_ix: usize, amount: u32) {
-        if let Some(player) = self.players.get_mut(player_ix) {
+    fn draw_cards(self, player_ix: usize, amount: u32) -> Update {
+        let mut gs = self.clone();
+
+        if let Some(player) = gs.players.get_mut(player_ix) {
             for _ in 0..amount {
-                let card = self.deck.draw_card();
+                let card = gs.deck.draw_card();
 
                 if let Some(card) = card {
                     player.add_card(card);
                 }
             }
         }
+
+        Ok(gs)
     }
+
+    fn discard_card(
+        self,
+        player_ix: usize,
+        card_ix: usize,
+    ) -> Update {
+
+        if player_ix >= self.players.len() {
+            Err("".to_owned())
+        } else {
+            let mut gs = self.clone();
+            let player = &gs.players[player_ix];
+
+            match player.discard_card(card_ix) {
+                Ok((player, card)) => {
+                    gs.players[player_ix] = player;
+                    gs.deck.cards.push(card);
+                    Ok(gs)
+                }
+                Err(err) => Err(err)
+            }
+        }
+    }
+
+    fn reduce_fatigue(self, crew_ix:usize) -> Update {
+        let mut gs = self.clone();
+        if let Some(crew) = gs.crew.get_mut(crew_ix) {
+            crew.reduce_fatigue()
+        };
+
+        Ok(gs) 
+    }
+
+    fn prompt(self, msg: &str) -> Update {
+        let mut gs = self.clone();
+        gs.prompt = Some(msg.to_owned());
+        Ok(gs)
+    }
+
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct Crew {
     name: String,
     fatigue: u32,
@@ -92,7 +146,7 @@ impl Crew {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct AbilityCardDeck {
     cards: Vec<AbilityCard>,
 }
@@ -108,7 +162,7 @@ struct AbilityCard {
     name: String,
 }
 
-#[derive(Default, Serialize)]
+#[derive(Default, Serialize, Clone)]
 struct Player {
     command_tokens: u32,
     hand: Vec<AbilityCard>,
@@ -120,22 +174,26 @@ impl Player {
     }
 
     fn discard_card(
-        &mut self,
+        &self,
         card_ix: usize,
-    ) -> Option<AbilityCard> {
-
-        if self.hand.len() <= card_ix {
-            None
+    ) -> Result<(Player, AbilityCard), String> {
+        let mut player = self.clone();
+        if player.hand.len() <= card_ix {
+            Err("this card does not exist in the players hand"
+                .to_owned())
         } else {
-            Some(self.hand.remove(card_ix))
+            let card = player.hand.remove(card_ix);
+            Ok((player, card))
         }
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
 enum ShipRoom {
     Galley,
     Bridge,
     Deck,
     None,
 }
+
+type Update = Result<GameState, String>;

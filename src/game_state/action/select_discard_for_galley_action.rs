@@ -1,7 +1,9 @@
+use std::fmt::Display;
+
 use serde::Deserialize;
 
 use super::Action;
-use crate::game_state::{GamePhase, GameState, ShipActionPhase};
+use crate::game_state::{GamePhase, GameState, ShipActionPhase, Update};
 
 #[derive(Deserialize)]
 pub struct SelectDiscardForGalleyAction {
@@ -11,32 +13,42 @@ pub struct SelectDiscardForGalleyAction {
     player_ix: usize,
 }
 
-impl Action for SelectDiscardForGalleyAction {
-    fn execute(&self, state: &mut GameState) -> Option<String> {
-        // VALIDATE
-        match state.phase {
-            GamePhase::ShipAction(Some(
-                ShipActionPhase::GalleyAction {
-                    gain_phase_complete: true,
-                },
-            )) => {
-                let card = state.players[self.player_ix]
-                    .discard_card(self.discard_ix);
+fn validate(state: &GameState) -> Update {
+    if let GamePhase::ShipAction(
+        Some(ShipActionPhase::GalleyAction { gain_phase_complete: true })
+    ) = &state.phase {
+        Ok(state.clone())
+    } else {
+        Err("Wrong phase".to_owned())
+    }
+}
 
-                //ACT
-                state.phase = GamePhase::ShipActionComplete;         
-                if self.decline {
-                    None
-                } else {
-                    state.crew[self.crew_ix].reduce_fatigue();           
-                    None
-                }
-            }
-            _ => Some(String::from("Wrong phase")),
+impl Action for SelectDiscardForGalleyAction {
+    fn execute(&self, state: &GameState) -> Update {
+        let gs = Ok(state.clone())
+                    .and_then(|g| validate(&g))
+                    .map(|g| {
+                        GameState {
+                            phase: GamePhase::ShipActionComplete,
+                            ..g
+                        }
+                    });
+
+        if self.decline {
+            gs
+        } else {
+            gs
+                .and_then(|g| g.discard_card(self.player_ix, self.discard_ix))
+                .and_then(|g| g.reduce_fatigue(self.crew_ix))
         }
     }
+}
 
-    fn name(&self) -> &str {
-        "Select discard for galley action"
+impl Display for SelectDiscardForGalleyAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f, "Select Discard For Galley Action\n{}\n{}\n{}",
+            self.decline, self.crew_ix, self.player_ix
+        )   
     }
 }

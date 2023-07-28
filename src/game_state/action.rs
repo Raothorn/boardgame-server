@@ -1,21 +1,24 @@
-use super::GameState;
+use core::fmt;
+use std::fmt::Display;
+
+use super::{GameState, Update};
 use serde_json::Value::Object;
 use serde_json::{from_str, Value};
 
 pub mod end_turn;
-pub mod take_ship_action;
 pub mod select_discard_for_galley_action;
+pub mod take_ship_action;
 
-pub trait Action {
-    fn execute(&self, state: &mut GameState) -> Option<String>;
-    fn name(&self) -> &str;
+pub trait Action: fmt::Display {
+    fn execute(&self, state: &GameState) -> Update;
 }
 
 pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
     let msg: Value = serde_json::from_str(action_msg_str).unwrap();
 
     if let Object(obj) = msg {
-        let (atype, adata) = (obj.get("actionType"), obj.get("actionData"));
+        let (atype, adata) =
+            (obj.get("actionType"), obj.get("actionData"));
 
         if let (Some(serde_json::Value::String(atype)), Some(adata)) =
             (atype, adata)
@@ -35,28 +38,23 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
                     from_str::<select_discard_for_galley_action::SelectDiscardForGalleyAction>(&adata.to_string())
                         .unwrap(),
                 ),
-                _ => Box::new(()),
+                _ => Box::new(NoAction)
             };
         }
     }
-    Box::new(())
+    Box::new(NoAction)
 }
 
-impl Action for () {
-    fn execute(&self, _: &mut GameState) -> Option<String> {
-        None
-    }
+struct NoAction;
 
-    fn name(&self) -> &str {
-        "no action"
+impl Action for NoAction {
+    fn execute(&self, gs: &GameState) -> Update {
+        Ok(gs.to_owned())
     }
 }
 
-// #[macro_export]
-// macro_rules! match_action {
-//     ($action_path:path, $action_data:ident) => {
-//         let action = from_str::<$action_path>(&$action_data)
-//                         .ok();
-//         None
-//     };
-// }
+impl Display for NoAction {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Ok(())
+    }
+}

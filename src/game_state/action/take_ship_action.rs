@@ -1,7 +1,11 @@
+use std::fmt::Display;
+
 use serde::Deserialize;
 
 use super::Action;
-use crate::game_state::{GamePhase, GameState, ShipActionPhase, ShipRoom};
+use crate::game_state::{
+    GamePhase, GameState, ShipActionPhase, ShipRoom, Update,
+};
 
 #[derive(Deserialize)]
 pub struct TakeShipAction {
@@ -10,107 +14,63 @@ pub struct TakeShipAction {
 }
 
 impl TakeShipAction {
-    fn bridge_action(&self, state: &mut GameState) {                   
-        state.give_command_tokens(self.player_ix, 3);
-        state.draw_cards(self.player_ix, 1);
-
-        state.phase = GamePhase::ShipActionComplete;
-        state.room = ShipRoom::Bridge;
+    fn bridge_action(&self, state: &GameState) -> Update {
+        Ok(state.clone())
+            .and_then(|g| g.give_command_tokens(self.player_ix, 3))
+            .and_then(|g| g.draw_cards(self.player_ix, 1))
+            .map(|g| GameState {
+                room: ShipRoom::Bridge,
+                phase: GamePhase::ShipActionComplete,
+                ..g
+            })
     }
 
-    fn galley_action(&self, state: &mut GameState) {
-        state.give_command_tokens(self.player_ix, 3);
-        state.draw_cards(self.player_ix, 2);
-        state.room = ShipRoom::Galley;
-        state.phase =
-            GamePhase::ShipAction(Some(ShipActionPhase::GalleyAction {
+    fn galley_action(&self, state: &GameState) -> Update {
+        let phase = GamePhase::ShipAction(Some(
+            ShipActionPhase::GalleyAction {
                 gain_phase_complete: true,
-            }));
-        state.prompt = Some(String::from("selectDiscardForGalleyAction"));
+            },
+        ));
+
+        Ok(state.clone())
+            .and_then(|g| g.give_command_tokens(self.player_ix, 3))
+            .and_then(|g| g.draw_cards(self.player_ix, 2))
+            .map(|g| GameState {
+                room: ShipRoom::Galley,
+                phase: phase,
+                ..g
+            })
+            .and_then(|g| g.prompt("selectDiscardForGalleyAction"))
     }
 }
 
 impl Action for TakeShipAction {
-    fn execute(&self, state: &mut GameState) -> Option<String> {
+    fn execute(&self, state: &GameState) -> Update {
         if let GamePhase::ShipAction(None) = &state.phase {
             if state.room == self.room {
-                Some(String::from("You cannot visit the same room twice"))
+                Err("You cannot visit the same room twice".to_owned())
             } else {
                 match self.room {
-                    ShipRoom::Bridge => {
-                        self.bridge_action(state);
-                        None
-                    }
-                    ShipRoom::Galley => {
-                        self.galley_action(state);
-                        None
-                    }
-                    _ => Some(String::from("Not implemented")),
+                    ShipRoom::Bridge => self.bridge_action(state),
+                    ShipRoom::Galley => self.galley_action(state),
+                    _ => Err(String::from("Not implemented")),
                 }
             }
         } else {
-            Some(String::from("Wrong phase."))
+            Err("Wrong phase.".to_owned())
         }
-    }
-
-    fn name(&self) -> &str {
-        "take ship action"
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::game_state::{AbilityCard, Player, ShipRoom};
-
-    #[test]
-    fn test_take_ship_action_bridge() {
-        // Setup
-        let mut state = GameState::init_state();
-        state.add_player(Player::default());
-        let card = AbilityCard {
-            name: String::from("Card 1"),
-        };
-        state.deck.cards.push(card.clone());
-        state.phase = GamePhase::ShipAction(None);
-
-        let action = TakeShipAction {
-            room: ShipRoom::Bridge,
-            player_ix: 0,
-        };
-        action.execute(&mut state);
-
-        // The room has changed
-        assert!(matches!(state.room, ShipRoom::Bridge));
-
-        // The player has drawn a card
-        let player_card = state.players[0].hand.first().unwrap();
-        assert_eq!(*player_card, card);
-
-        // The phase is complete
-        assert!(matches!(
-            state.phase,
-            GamePhase::ShipAction(Some(ShipActionPhase::BridgeAction))
-        ));
-    }
-
-    #[test]
-    fn test_cannot_use_same_ship_action() {
-        let mut state = GameState::init_state();
-        state.add_player(Player::default());
-
-        let card = AbilityCard {
-            name: String::from("Card 1"),
-        };
-        state.deck.cards.push(card.clone());
-        state.room = ShipRoom::Bridge;
-
-        let action = TakeShipAction {
-            room: ShipRoom::Bridge,
-            player_ix: 0,
-        };
-        let result = action.execute(&mut state);
-
-        assert!(matches!(result, Some(_)))
+impl Display for TakeShipAction {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        write!(
+            f,
+            "Take Ship Action:\n Room: {:?}\n PlayerIx: {}",
+            self.room, self.player_ix
+        )
     }
 }

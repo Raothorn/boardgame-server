@@ -1,6 +1,8 @@
+use std::fmt::Display;
+
 use serde::Deserialize;
 
-use crate::game_state::GamePhase;
+use crate::game_state::{GamePhase, GameState, Update};
 
 use super::Action;
 
@@ -10,16 +12,20 @@ pub struct EndTurnAction {
 }
 
 impl Action for EndTurnAction {
-    fn execute(&self, state: &mut crate::game_state::GameState) -> Option<String> {
+    fn execute(&self, state: &GameState) -> Update {
         
         if let GamePhase::ShipActionComplete = state.phase {
-            state.phase = GamePhase::ShipAction(None);
-            return None;
+            let mut gs = state.clone();
+            gs.phase = GamePhase::ShipAction(None);
+            Ok(gs)
+        } else {
+            Err("You can't end the turn yet".to_owned())
         }
-        Some(String::from("You can't end the turn yet"))
     }
+}
 
-    fn name(&self) -> &str {
-        "End Turn"
+impl Display for EndTurnAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "End Turn Action")
     }
 }
