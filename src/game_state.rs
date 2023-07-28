@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 
 pub mod action;
 #[derive(Clone, Serialize)]
@@ -10,6 +11,7 @@ enum GamePhase {
 #[derive(Clone, Serialize)]
 enum ShipActionPhase {
     GalleyAction { gain_phase_complete: bool },
+    DeckAction   { search_tokens_drawn: u32 }
 }
 
 #[derive(Clone, Serialize)]
@@ -17,11 +19,11 @@ pub struct GameState {
     phase: GamePhase,
     players: Vec<Player>,
     crew: Vec<Crew>,
-    deck: AbilityCardDeck,
+    ability_deck: Deck<AbilityCard>,
     room: ShipRoom,
     resources: Resources,
     #[serde(skip)]
-    pub prompt: Option<String>,
+    pub prompt: Option<Value>,
 }
 
 impl GameState {
@@ -39,18 +41,18 @@ impl GameState {
                     fatigue: 0,
                 },
             ],
-            deck: AbilityCardDeck {
-                cards: vec![
-                    AbilityCard {
-                        name: String::from("card 1"),
-                    },
-                    AbilityCard {
-                        name: String::from("card 2"),
-                    },
-                ],
-            },
             room: ShipRoom::None,
+            resources: Resources {
+                coins: 3,
+                grain: 1,
+                meat: 0,
+            },
             prompt: None,
+            ability_deck: Deck::new(vec![
+                AbilityCard{name: "card1".to_owned()},
+                AbilityCard{name: "card2".to_owned()},
+                AbilityCard{name: "card3".to_owned()},
+            ])
         }
     }
 
@@ -80,11 +82,14 @@ impl GameState {
 
         if let Some(player) = gs.players.get_mut(player_ix) {
             for _ in 0..amount {
-                let card = gs.deck.draw_card();
-
-                if let Some(card) = card {
+                if let Ok((card, deck)) = gs.ability_deck.draw() {
                     player.add_card(card);
+                    gs.ability_deck = deck;
                 }
+
+                // if let Some(card) = card {
+                //     player.add_card(card);
+                // }
             }
         }
 
@@ -96,7 +101,6 @@ impl GameState {
         player_ix: usize,
         card_ix: usize,
     ) -> Update {
-
         if player_ix >= self.players.len() {
             Err("".to_owned())
         } else {
@@ -106,29 +110,36 @@ impl GameState {
             match player.discard_card(card_ix) {
                 Ok((player, card)) => {
                     gs.players[player_ix] = player;
-                    gs.deck.cards.push(card);
+                    gs.ability_deck.add_to_discard(card);
                     Ok(gs)
                 }
-                Err(err) => Err(err)
+                Err(err) => Err(err),
             }
         }
     }
 
-    fn reduce_fatigue(self, crew_ix:usize) -> Update {
+    fn reduce_fatigue(self, crew_ix: usize) -> Update {
         let mut gs = self.clone();
         if let Some(crew) = gs.crew.get_mut(crew_ix) {
             crew.reduce_fatigue()
         };
 
-        Ok(gs) 
-    }
-
-    fn prompt(self, msg: &str) -> Update {
-        let mut gs = self.clone();
-        gs.prompt = Some(msg.to_owned());
         Ok(gs)
     }
 
+    fn prompt_str(self, msg: &str) -> GameState {
+        let msg_obj = json!({
+            "promptType": msg,
+            "promptData": {}
+        });
+        self.prompt(&msg_obj)
+    }
+
+    fn prompt(self, msg: &Value) -> GameState {
+        let mut gs = self.clone();
+        gs.prompt = Some(msg.to_owned());
+        gs
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -146,13 +157,27 @@ impl Crew {
 }
 
 #[derive(Serialize, Clone)]
-struct AbilityCardDeck {
-    cards: Vec<AbilityCard>,
+struct Deck<T: Clone> {
+    items: Vec<T>,
+    discard: Vec<T>
 }
 
-impl AbilityCardDeck {
-    fn draw_card(&mut self) -> Option<AbilityCard> {
-        self.cards.pop()
+impl<T:Clone> Deck<T> {
+    fn new(items: Vec<T>) -> Self {
+        Deck { items: items, discard: Vec::new() }
+    }
+
+    fn draw(&self) -> Result<(T, Self), String> {
+        let mut deck = self.clone();
+        deck.items.pop()
+            .ok_or("No items left in the deck".to_string())
+            .map(|card| (card, deck))
+    }
+
+    fn add_to_discard(&self, item: T) -> Self {
+        let mut deck = self.clone();
+        deck.discard.push(item);
+        deck
     }
 }
 
@@ -191,7 +216,7 @@ impl Player {
 struct Resources {
     coins: u32,
     grain: u32,
-    meat: u32
+    meat: u32,
 }
 
 #[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]

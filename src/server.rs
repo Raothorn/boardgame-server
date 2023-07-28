@@ -82,7 +82,7 @@ impl ServerState {
         }
     }
 
-    fn prompt(&self, addr: &str, msg:&str) {
+    fn prompt(&self, addr: &str, msg:&Value) {
         println!("prompting: {}", msg);
         let mut clients = self.clients.lock().unwrap();
         let client = clients.get_mut(addr);

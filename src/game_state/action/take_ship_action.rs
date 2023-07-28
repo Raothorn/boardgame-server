@@ -25,6 +25,12 @@ impl TakeShipAction {
             })
     }
 
+    fn deck_action(&self, state: &GameState) -> Update {
+        // Ok(state.clone())
+        //     .map(|g| g.prompt_str())
+        todo!()
+    }
+
     fn galley_action(&self, state: &GameState) -> Update {
         let phase = GamePhase::ShipAction(Some(
             ShipActionPhase::GalleyAction {
@@ -41,7 +47,7 @@ impl TakeShipAction {
                 phase: phase,
                 ..g
             })
-            .and_then(|g| g.prompt("selectDiscardForGalleyAction"))
+            .map(|g| g.prompt_str("selectDiscardForGalleyAction"))
     }
 }
 
