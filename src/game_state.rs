@@ -4,14 +4,14 @@ use serde_json::{json, Value};
 pub mod action;
 #[derive(Clone, Serialize)]
 enum GamePhase {
-    ShipAction(Option<ShipActionPhase>),
+    ShipAction(Option<ShipActionSubphase>),
     ShipActionComplete,
 }
 
 #[derive(Clone, Serialize)]
-enum ShipActionPhase {
+enum ShipActionSubphase {
     GalleyAction { gain_phase_complete: bool },
-    DeckAction   { search_tokens_drawn: u32 }
+    DeckAction   { search_tokens_drawn: Vec<SearchToken> }
 }
 
 #[derive(Clone, Serialize)]
@@ -20,9 +20,9 @@ pub struct GameState {
     players: Vec<Player>,
     crew: Vec<Crew>,
     ability_deck: Deck<AbilityCard>,
+    search_token_deck: Deck<SearchToken>,
     room: ShipRoom,
     resources: Resources,
-    #[serde(skip)]
     pub prompt: Option<Value>,
 }
 
@@ -52,7 +52,10 @@ impl GameState {
                 AbilityCard{name: "card1".to_owned()},
                 AbilityCard{name: "card2".to_owned()},
                 AbilityCard{name: "card3".to_owned()},
-            ])
+            ]),
+            search_token_deck: Deck::new(
+                (1..8).into_iter().map(|n| SearchToken(n)).collect()
+            )
         }
     }
 
@@ -75,6 +78,12 @@ impl GameState {
         } else {
             Err("Player does not exist".to_owned())
         }
+    }
+
+    fn apply_search_tokens(self, token: &SearchToken) -> Update {
+        let mut gs = self.clone();
+        gs.resources.meat += 1;
+        Ok(gs)
     }
 
     fn draw_cards(self, player_ix: usize, amount: u32) -> Update {
@@ -110,7 +119,7 @@ impl GameState {
             match player.discard_card(card_ix) {
                 Ok((player, card)) => {
                     gs.players[player_ix] = player;
-                    gs.ability_deck.add_to_discard(card);
+                    gs.ability_deck = gs.ability_deck.add_to_discard(card);
                     Ok(gs)
                 }
                 Err(err) => Err(err),
@@ -219,12 +228,15 @@ struct Resources {
     meat: u32,
 }
 
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 enum ShipRoom {
     Galley,
     Bridge,
     Deck,
     None,
 }
+
+#[derive(Clone, Serialize, Copy, Default)]
+struct SearchToken(u32);
 
 type Update = Result<GameState, String>;

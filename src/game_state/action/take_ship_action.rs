@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use super::Action;
 use crate::game_state::{
-    GamePhase, GameState, ShipActionPhase, ShipRoom, Update,
+    GamePhase, GameState, ShipActionSubphase, ShipRoom, Update,
 };
 
 #[derive(Deserialize)]
@@ -26,18 +26,24 @@ impl TakeShipAction {
     }
 
     fn deck_action(&self, state: &GameState) -> Update {
-        // Ok(state.clone())
-        //     .map(|g| g.prompt_str())
-        todo!()
+        Ok(state.clone())
+            .map(|g| GameState {
+                phase: GamePhase::ShipAction(Some(
+                    ShipActionSubphase::DeckAction {
+                        search_tokens_drawn: Vec::new(),
+                    },
+                )),
+                ..g
+            })
+            .map(|g| g.prompt_str("drawForDeckAction"))
     }
 
     fn galley_action(&self, state: &GameState) -> Update {
         let phase = GamePhase::ShipAction(Some(
-            ShipActionPhase::GalleyAction {
+            ShipActionSubphase::GalleyAction {
                 gain_phase_complete: true,
             },
         ));
-
 
         Ok(state.clone())
             .and_then(|g| g.give_command_tokens(self.player_ix, 3))
@@ -60,6 +66,7 @@ impl Action for TakeShipAction {
                 match self.room {
                     ShipRoom::Bridge => self.bridge_action(state),
                     ShipRoom::Galley => self.galley_action(state),
+                    ShipRoom::Deck   => self.deck_action(state),
                     _ => Err(String::from("Not implemented")),
                 }
             }

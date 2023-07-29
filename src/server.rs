@@ -82,20 +82,6 @@ impl ServerState {
         }
     }
 
-    fn prompt(&self, addr: &str, msg:&Value) {
-        println!("prompting: {}", msg);
-        let mut clients = self.clients.lock().unwrap();
-        let client = clients.get_mut(addr);
-
-        if let Some(client) = client {
-            let message = json!({
-                "msgType": "prompt",
-                "msgData": msg
-            });
-            client.send_message(&Message::text(message.to_string())).unwrap();
-        }
-    }
-
     fn handle_action_message(&self, addr: &str, msg: &str) {
         let mut manager = self.manager.lock().unwrap();
         let action = get_action(msg);
@@ -118,12 +104,6 @@ impl ServerState {
                 drop(manager);
                 self.broadcast_gamestate();
                 let mut manager = self.manager.lock().unwrap();
-
-                if let Some(prompt) = &manager.state.prompt {
-                    self.prompt(addr, &prompt);
-                    manager.state.prompt = None;
-                    println!("prompting");
-                }
             }
         }
     }

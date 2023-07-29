@@ -3,7 +3,7 @@ use std::fmt::Display;
 use serde::Deserialize;
 
 use super::Action;
-use crate::game_state::{GamePhase, GameState, ShipActionPhase, Update};
+use crate::game_state::{GamePhase, GameState, ShipActionSubphase, Update};
 
 #[derive(Deserialize)]
 pub struct SelectDiscardForGalleyAction {
@@ -15,7 +15,7 @@ pub struct SelectDiscardForGalleyAction {
 
 fn validate(state: &GameState) -> Update {
     if let GamePhase::ShipAction(
-        Some(ShipActionPhase::GalleyAction { gain_phase_complete: true })
+        Some(ShipActionSubphase::GalleyAction { gain_phase_complete: true })
     ) = &state.phase {
         Ok(state.clone())
     } else {
@@ -30,6 +30,7 @@ impl Action for SelectDiscardForGalleyAction {
                     .map(|g| {
                         GameState {
                             phase: GamePhase::ShipActionComplete,
+                            prompt: None,
                             ..g
                         }
                     });

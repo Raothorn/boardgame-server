@@ -2,15 +2,20 @@ use core::fmt;
 use std::fmt::Display;
 
 use super::{GameState, Update};
+use serde::Deserialize;
 use serde_json::Value::Object;
 use serde_json::{from_str, Value};
 
-pub mod end_turn;
-pub mod select_discard_for_galley_action;
-pub mod take_ship_action;
+mod choose_token_for_deck_action;
+mod draw_for_deck_action;
+mod end_turn;
+mod select_discard_for_galley_action;
+mod take_ship_action;
 
 pub trait Action: fmt::Display {
-    fn execute(&self, state: &GameState) -> Update;
+    fn execute(&self, state: &GameState) -> Update {
+        Ok(state.clone())
+    }
 }
 
 pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
@@ -38,12 +43,26 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
                     from_str::<select_discard_for_galley_action::SelectDiscardForGalleyAction>(&adata.to_string())
                         .unwrap(),
                 ),
+                "drawForDeckAction" => Box::new(
+                    from_str::<draw_for_deck_action::DrawForDeckAction>(&adata.to_string())
+                        .unwrap(),
+                ),
+                "stopDrawingForDeckAction" => Box::new(
+                    from_str::<StopDrawingForDeckAction>(&adata.to_string())
+                        .unwrap(),
+                ),
+                "chooseTokenForDeckAction" => Box::new(
+                    from_str::<choose_token_for_deck_action::ChooseTokenForDeckAction>(&adata.to_string())
+                        .unwrap(),
+                ),
                 _ => Box::new(NoAction)
             };
         }
     }
     Box::new(NoAction)
 }
+
+// BASIC ACTIONS
 
 struct NoAction;
 
@@ -56,5 +75,25 @@ impl Action for NoAction {
 impl Display for NoAction {
     fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Ok(())
+    }
+}
+
+#[derive(Deserialize)]
+struct StopDrawingForDeckAction {
+    player_ix: usize
+}
+
+impl Action for StopDrawingForDeckAction {
+    fn execute(&self, state: &GameState) -> Update {
+        Ok(state.clone())
+            .map(|g| {
+                g.prompt_str("chooseTokenForDeckAction")
+            })
+    }
+}
+
+impl Display for StopDrawingForDeckAction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Stop Drawing For Deck Action")
     }
 }
