@@ -13,7 +13,7 @@ pub struct EndTurnAction {
 
 impl Action for EndTurnAction {
     fn execute(&self, state: &GameState) -> Update {
-        if let GamePhase::ShipActionComplete = state.phase {
+        if let GamePhase::EventPhase(Some(_)) = state.phase {
             let mut gs = state.clone();
             gs.phase = GamePhase::ShipAction(None);
             Ok(gs)

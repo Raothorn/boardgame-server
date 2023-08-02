@@ -20,7 +20,7 @@ impl TakeShipAction {
             .and_then(|g| g.draw_cards(self.player_ix, 1))
             .map(|g| GameState {
                 room: ShipRoom::Bridge,
-                phase: GamePhase::ShipActionComplete,
+                phase: GamePhase::EventPhase(None),
                 ..g
             })
     }
@@ -33,6 +33,7 @@ impl TakeShipAction {
                         search_tokens_drawn: Vec::new(),
                     },
                 )),
+                room: ShipRoom::Deck,
                 ..g
             })
             .map(|g| g.prompt_str("drawForDeckAction"))
@@ -50,7 +51,7 @@ impl TakeShipAction {
             .and_then(|g| g.draw_cards(self.player_ix, 2))
             .map(|g| GameState {
                 room: ShipRoom::Galley,
-                phase: phase,
+                phase,
                 ..g
             })
             .map(|g| g.prompt_str("selectDiscardForGalleyAction"))

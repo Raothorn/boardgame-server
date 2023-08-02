@@ -49,7 +49,7 @@ impl Action for ChooseTokenForDeckAction {
                     gs.search_token_deck.add_to_discard(discard);
             }
             gs.prompt = None;
-            gs.phase = GamePhase::ShipActionComplete;
+            gs.phase = GamePhase::EventPhase(None);
             gs.apply_search_tokens(&token)
         })
     }

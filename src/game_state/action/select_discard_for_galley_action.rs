@@ -29,7 +29,7 @@ impl Action for SelectDiscardForGalleyAction {
                     .and_then(|g| validate(&g))
                     .map(|g| {
                         GameState {
-                            phase: GamePhase::ShipActionComplete,
+                            phase: GamePhase::EventPhase(None),
                             prompt: None,
                             ..g
                         }

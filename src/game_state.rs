@@ -2,10 +2,17 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 pub mod action;
+#[allow(dead_code, unreachable_code, unused_variables)]
+pub mod event_deck;
+
+use event_deck::EventCard;
+
+use self::event_deck::event_deck;
+
 #[derive(Clone, Serialize)]
 enum GamePhase {
     ShipAction(Option<ShipActionSubphase>),
-    ShipActionComplete,
+    EventPhase(Option<EventCard>)
 }
 
 #[derive(Clone, Serialize)]
@@ -21,6 +28,7 @@ pub struct GameState {
     crew: Vec<Crew>,
     ability_deck: Deck<AbilityCard>,
     search_token_deck: Deck<SearchToken>,
+    event_card_deck: Deck<EventCard>,
     room: ShipRoom,
     resources: Resources,
     pub prompt: Option<Value>,
@@ -55,7 +63,8 @@ impl GameState {
             ]),
             search_token_deck: Deck::new(
                 (1..8).into_iter().map(|n| SearchToken(n)).collect()
-            )
+            ),
+            event_card_deck: Deck::new(event_deck())
         }
     }
 

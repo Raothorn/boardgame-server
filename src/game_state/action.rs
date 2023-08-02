@@ -11,6 +11,8 @@ mod draw_for_deck_action;
 mod end_turn;
 mod select_discard_for_galley_action;
 mod take_ship_action;
+mod handle_event_phase_action;
+mod select_event_option_action;
 
 pub trait Action: fmt::Display {
     fn execute(&self, state: &GameState) -> Update {
@@ -53,6 +55,14 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
                 ),
                 "chooseTokenForDeckAction" => Box::new(
                     from_str::<choose_token_for_deck_action::ChooseTokenForDeckAction>(&adata.to_string())
+                        .unwrap(),
+                ),
+                "handleEventPhaseAction" => Box::new(
+                    from_str::<handle_event_phase_action::HandleEventPhaseAction>(&adata.to_string())
+                        .unwrap(),
+                ),
+                "selectEventOptionAction" => Box::new(
+                    from_str::<select_event_option_action::SelectEventOptionAction>(&adata.to_string())
                         .unwrap(),
                 ),
                 _ => Box::new(NoAction)
