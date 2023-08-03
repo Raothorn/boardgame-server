@@ -108,7 +108,6 @@ impl ServerState {
 
                 drop(manager);
                 self.broadcast_gamestate();
-                let mut manager = self.manager.lock().unwrap();
             }
         }
     }

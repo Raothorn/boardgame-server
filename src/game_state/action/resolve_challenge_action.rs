@@ -4,7 +4,9 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::Action;
-use crate::game_state::{Challenge, GamePhase, GameState, Update};
+use crate::game_state::{
+    challenge::Challenge, GamePhase, GameState, Update,
+};
 
 #[derive(Deserialize)]
 pub struct ResolveChallengeAction {

@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::game_state::{Challenge, Skill};
+use crate::game_state::{challenge::Challenge, Skill};
 
 use super::{GameState, Update};
 

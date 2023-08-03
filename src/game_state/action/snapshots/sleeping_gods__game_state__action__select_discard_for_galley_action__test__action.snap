@@ -1,5 +1,5 @@
 ---
-source: src/game_state/action/take_ship_action.rs
+source: src/game_state/action/select_discard_for_galley_action.rs
 expression: result.unwrap()
 ---
 {
@@ -8,12 +8,8 @@ expression: result.unwrap()
   },
   "players": [
     {
-      "command_tokens": 3,
-      "hand": [
-        {
-          "name": "9"
-        }
-      ]
+      "command_tokens": 0,
+      "hand": []
     }
   ],
   "crew": [
@@ -59,9 +55,16 @@ expression: result.unwrap()
       },
       {
         "name": "8"
+      },
+      {
+        "name": "9"
       }
     ],
-    "discard": []
+    "discard": [
+      {
+        "name": ""
+      }
+    ]
   },
   "search_token_deck": {
     "items": [
@@ -99,7 +102,7 @@ expression: result.unwrap()
     ],
     "discard": []
   },
-  "room": "Bridge",
+  "room": "None",
   "resources": {
     "coins": 0,
     "grain": 0,

@@ -6,6 +6,7 @@ use crate::game_state::{GamePhase, GameState, Update};
 #[derive(Deserialize)]
 pub struct SelectEventOptionAction {
     option_ix: usize,
+    #[allow(dead_code)]
     player_ix: usize,
 }
 

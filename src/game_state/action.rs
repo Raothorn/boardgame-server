@@ -8,7 +8,6 @@ use serde_json::{from_str, Value};
 
 mod choose_token_for_deck_action;
 mod draw_for_deck_action;
-mod end_turn;
 mod handle_event_phase_action;
 mod resolve_challenge_action;
 mod select_discard_for_galley_action;
@@ -37,10 +36,6 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
                         &adata.to_string(),
                     )
                     .unwrap(),
-                ),
-                "endTurnAction" => Box::new(
-                    from_str::<end_turn::EndTurnAction>(&adata.to_string())
-                        .unwrap(),
                 ),
                 "selectDiscardForGalleyAction" => Box::new(
                     from_str::<select_discard_for_galley_action::SelectDiscardForGalleyAction>(&adata.to_string())
@@ -95,6 +90,7 @@ impl Display for NoAction {
 
 #[derive(Deserialize)]
 struct StopDrawingForDeckAction {
+    #[allow(dead_code)]
     player_ix: usize,
 }
 

@@ -2,15 +2,14 @@ use std::fmt::Display;
 
 use serde::Deserialize;
 
-use crate::game_state::{
-    GamePhase, GameState, SearchToken, ShipActionSubphase, Update,
-};
-
 use super::Action;
+use crate::game_state::game_phase::ShipActionSubphase;
+use crate::game_state::{GamePhase, GameState, SearchToken, Update};
 
 #[derive(Deserialize)]
 pub struct ChooseTokenForDeckAction {
     token_id: u32,
+    #[allow(dead_code)]
     player_ix: usize,
 }
 

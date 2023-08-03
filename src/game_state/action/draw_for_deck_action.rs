@@ -1,13 +1,14 @@
 use serde::Deserialize;
 
 use crate::game_state::{
-    GamePhase, GameState, ShipActionSubphase, Update,
+    game_phase::ShipActionSubphase, GamePhase, GameState, Update,
 };
 
 use super::Action;
 
 #[derive(Deserialize)]
 pub struct DrawForDeckAction {
+    #[allow(dead_code)]
     player_ix: usize,
 }
 
