@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Action;
-use crate::game_state::{GameState, Update, GamePhase};
+use crate::game_state::{GamePhase, GameState, Update};
 
 #[derive(Deserialize)]
 pub struct SelectEventOptionAction {
@@ -19,7 +19,9 @@ impl Action for SelectEventOptionAction {
                 Some(option) => {
                     gs.event_card_deck.add_to_discard(card);
                     Ok(gs)
-                        .and_then(|g| g.set_phase(GamePhase::ShipAction(None)))
+                        .and_then(|g| {
+                            g.set_phase(GamePhase::ShipAction(None))
+                        })
                         .map(|g| g.clear_prompt("selectEventOption"))
                         .and_then(|g| (option.handle_option)(&g))
                 }
@@ -32,11 +34,10 @@ impl Action for SelectEventOptionAction {
 }
 
 impl std::fmt::Display for SelectEventOptionAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
         write!(f, "Select Event Option")
     }
 }
-
-
-
-

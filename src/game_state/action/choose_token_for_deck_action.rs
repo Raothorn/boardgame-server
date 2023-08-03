@@ -49,7 +49,9 @@ impl Action for ChooseTokenForDeckAction {
             }
             gs.prompt = None;
             Ok(gs)
-                .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
+                .and_then(|g| {
+                    g.set_phase(GamePhase::EventPhase(None))
+                })
                 .and_then(|g| g.apply_search_tokens(&token))
         })
     }

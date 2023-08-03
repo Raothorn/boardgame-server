@@ -4,7 +4,9 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::Action;
-use crate::game_state::{GamePhase, GameState, ShipActionSubphase, Update};
+use crate::game_state::{
+    GamePhase, GameState, ShipActionSubphase, Update,
+};
 
 #[derive(Deserialize)]
 pub struct SelectDiscardForGalleyAction {
@@ -15,9 +17,12 @@ pub struct SelectDiscardForGalleyAction {
 }
 
 fn validate(state: &GameState) -> Update {
-    if let GamePhase::ShipAction(
-        Some(ShipActionSubphase::GalleyAction { gain_phase_complete: true })
-    ) = &state.phase() {
+    if let GamePhase::ShipAction(Some(
+        ShipActionSubphase::GalleyAction {
+            gain_phase_complete: true,
+        },
+    )) = &state.phase()
+    {
         Ok(state.clone())
     } else {
         Err("Wrong phase".to_owned())
@@ -27,25 +32,30 @@ fn validate(state: &GameState) -> Update {
 impl Action for SelectDiscardForGalleyAction {
     fn execute(&self, state: &GameState) -> Update {
         let gs = Ok(state.clone())
-                    .and_then(|g| validate(&g))
-                    .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
-                    .map(|g| g.prompt(&Value::Null));
+            .and_then(|g| validate(&g))
+            .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
+            .map(|g| g.prompt(&Value::Null));
 
         if self.decline {
             gs
         } else {
-            gs
-                .and_then(|g| g.discard_card(self.player_ix, self.discard_ix))
-                .and_then(|g| g.reduce_fatigue(self.crew_ix))
+            gs.and_then(|g| {
+                g.discard_card(self.player_ix, self.discard_ix)
+            })
+            .and_then(|g| g.reduce_fatigue(self.crew_ix))
         }
     }
 }
 
 impl Display for SelectDiscardForGalleyAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
         write!(
-            f, "Select Discard For Galley Action\n{}\n{}\n{}",
+            f,
+            "Select Discard For Galley Action\n{}\n{}\n{}",
             self.decline, self.crew_ix, self.player_ix
-        )   
+        )
     }
 }

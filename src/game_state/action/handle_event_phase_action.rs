@@ -9,20 +9,21 @@ use super::Action;
 use super::GameState;
 
 #[derive(Deserialize)]
-pub struct HandleEventPhaseAction {
-}
+pub struct HandleEventPhaseAction {}
 
 impl Action for HandleEventPhaseAction {
     fn execute(&self, state: &GameState) -> Update {
         if let GamePhase::EventPhase(None) = state.phase() {
             let mut gs = state.clone();
-            
+
             match gs.event_card_deck.draw() {
-                Ok(event_card) => {
-                    Ok(gs)
-                        .map(|g| g.prompt_str("selectEventOption"))
-                        .and_then(|g| g.set_phase(GamePhase::EventPhase(Some(event_card))))
-                }
+                Ok(event_card) => Ok(gs)
+                    .map(|g| g.prompt_str("selectEventOption"))
+                    .and_then(|g| {
+                        g.set_phase(GamePhase::EventPhase(Some(
+                            event_card,
+                        )))
+                    }),
                 Err(e) => Err(e),
             }
         } else {

@@ -20,7 +20,10 @@ struct GameManager {
 }
 
 impl GameManager {
-    fn execute_action(&mut self, action: &dyn Action) -> Option<String> {
+    fn execute_action(
+        &mut self,
+        action: &dyn Action,
+    ) -> Option<String> {
         let res = action.execute(&self.state);
 
         match res {
@@ -78,7 +81,9 @@ impl ServerState {
                 "msgType": "notify",
                 "msgData": msg
             });
-            client.send_message(&Message::text(message.to_string())).unwrap();
+            client
+                .send_message(&Message::text(message.to_string()))
+                .unwrap();
         }
     }
 
@@ -120,7 +125,6 @@ impl ServerState {
         println!("received message: {}", msg);
         let msg: Value = serde_json::from_str(msg).unwrap();
 
-
         if let Value::Object(obj) = msg {
             let msg_type = obj.get("msgType");
             let msg_data = obj.get("msgData");
@@ -129,9 +133,10 @@ impl ServerState {
                 (msg_type, msg_data)
             {
                 match msg_type.as_str() {
-                    "action" => {
-                        self.handle_action_message(addr, &msg_data.to_string())
-                    }
+                    "action" => self.handle_action_message(
+                        addr,
+                        &msg_data.to_string(),
+                    ),
                     "restart" => self.handle_restart_message(),
                     _ => (),
                 }

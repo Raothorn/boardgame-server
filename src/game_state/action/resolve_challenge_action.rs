@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::Action;
-use crate::game_state::{GamePhase, GameState, Update, Challenge};
+use crate::game_state::{Challenge, GamePhase, GameState, Update};
 
 #[derive(Deserialize)]
 pub struct ResolveChallengeAction {
@@ -12,7 +12,11 @@ pub struct ResolveChallengeAction {
 }
 
 impl ResolveChallengeAction {
-    fn sufficient_skill(&self, state: &GameState, challenge: &Challenge) -> bool {
+    fn sufficient_skill(
+        &self,
+        state: &GameState,
+        challenge: &Challenge,
+    ) -> bool {
         let mut total = 0;
         for crew_ix in self.selected_crew.iter() {
             let crew = &state.crew[*crew_ix];

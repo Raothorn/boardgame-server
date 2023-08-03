@@ -8,7 +8,7 @@ use super::Action;
 
 #[derive(Deserialize)]
 pub struct EndTurnAction {
-    player_ix: usize
+    player_ix: usize,
 }
 
 impl Action for EndTurnAction {
@@ -24,7 +24,10 @@ impl Action for EndTurnAction {
 }
 
 impl Display for EndTurnAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
         write!(f, "End Turn Action")
     }
 }

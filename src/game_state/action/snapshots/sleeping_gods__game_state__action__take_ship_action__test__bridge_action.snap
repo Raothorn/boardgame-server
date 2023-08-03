@@ -1,0 +1,91 @@
+---
+source: src/game_state/action/take_ship_action.rs
+expression: result.unwrap()
+---
+{
+  "phase": {
+    "EventPhase": null
+  },
+  "players": [
+    {
+      "command_tokens": 3,
+      "hand": [
+        {
+          "name": "card3"
+        }
+      ]
+    }
+  ],
+  "crew": [
+    {
+      "name": "Sofi Odessa",
+      "fatigue": 1,
+      "skills": {
+        "Craft": 2,
+        "Savvy": 4
+      }
+    },
+    {
+      "name": "Laurant Lapointe",
+      "fatigue": 0,
+      "skills": {
+        "Craft": 2,
+        "Savvy": 4
+      }
+    }
+  ],
+  "ability_deck": {
+    "items": [
+      {
+        "name": "card1"
+      },
+      {
+        "name": "card2"
+      }
+    ],
+    "discard": []
+  },
+  "search_token_deck": {
+    "items": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "discard": []
+  },
+  "event_card_deck": {
+    "items": [
+      {
+        "name": "Biting Starfish",
+        "options": [
+          {
+            "text": "Gain 1 Coin"
+          },
+          {
+            "text": "Gain 1 Meat"
+          }
+        ]
+      },
+      {
+        "name": "Broken Biplane",
+        "options": [
+          {
+            "text": "Help repair the airplane: CRAFT 8"
+          }
+        ]
+      }
+    ],
+    "discard": []
+  },
+  "room": "Bridge",
+  "resources": {
+    "coins": 3,
+    "grain": 1,
+    "meat": 0
+  },
+  "prompt": null
+}

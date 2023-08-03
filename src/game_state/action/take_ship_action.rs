@@ -90,3 +90,47 @@ impl Display for TakeShipAction {
         )
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use test_case::test_case;
+
+    use ShipActionSubphase as Sas;
+    use GamePhase::ShipAction as Sa;
+    use GamePhase::EventPhase as Ep;
+    use GamePhase::ChallengePhase as Cp;
+
+    #[test]
+    fn test_bridge_action() {
+        let gs = GameState::init_state();
+        let action = TakeShipAction {
+            room: ShipRoom::Bridge,
+            player_ix: 0,
+        };
+
+        let result = action.execute(&gs);
+        assert!(result.is_ok());
+
+        insta::with_settings!({sort_maps => true}, {
+            // the tests here will force maps to sort
+            insta::assert_json_snapshot!(result.unwrap());
+        });
+    }
+
+    // #[test_case(Sa(Some(Sas::GalleyAction{gain_phase_complete: true})); 
+    //             "Current in ship action")]
+    #[test_case(Ep(None); "In event phase")]
+    // #[test_case(Cp(); "In event phase")]
+    // #[test_case(GamePhase)]
+    fn test_bridge_action_err_if_wrong_phase(phase: GamePhase) {
+        let gs = GameState::init_state();
+        let action = TakeShipAction {
+            room: ShipRoom::Bridge,
+            player_ix: 0,
+        };
+
+        let result = action.execute(&gs);
+        assert!(result.is_err());
+    }
+}

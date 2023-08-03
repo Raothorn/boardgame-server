@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{json, Value};
+use serde_with::DisplayFromStr;
 
 pub mod action;
 #[allow(dead_code, unreachable_code, unused_variables)]
@@ -27,7 +28,7 @@ enum ShipActionSubphase {
     },
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Default)]
 struct Challenge {
     skill: Skill,
     amount: u32,
@@ -35,7 +36,7 @@ struct Challenge {
 
 #[derive(Clone, Serialize)]
 pub struct GameState {
-    #[serde(serialize_with = "gamestate_phase", rename="phase")]
+    #[serde(serialize_with = "gamestate_phase", rename = "phase")]
     phase_stack: Vec<GamePhase>,
     players: Vec<Player>,
     crew: Vec<Crew>,
@@ -239,10 +240,12 @@ impl GameState {
     }
 }
 
+#[serde_with::serde_as]
 #[derive(Serialize, Clone)]
 struct Crew {
     name: String,
     fatigue: u32,
+    #[serde_as(as = "HashMap<DisplayFromStr,_>")]
     skills: HashMap<Skill, u32>,
 }
 
@@ -330,11 +333,20 @@ enum ShipRoom {
     None,
 }
 
-#[derive(Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Clone, Serialize, Hash, PartialEq, Eq, Debug)]
 enum Skill {
     Savvy,
     Craft,
     Wits,
+}
+
+impl std::fmt::Display for Skill {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Clone, Serialize, Copy, Default)]
