@@ -9,10 +9,11 @@ use serde_json::{from_str, Value};
 mod choose_token_for_deck_action;
 mod draw_for_deck_action;
 mod end_turn;
-mod select_discard_for_galley_action;
-mod take_ship_action;
 mod handle_event_phase_action;
+mod resolve_challenge_action;
+mod select_discard_for_galley_action;
 mod select_event_option_action;
+mod take_ship_action;
 
 pub trait Action: fmt::Display {
     fn execute(&self, state: &GameState) -> Update {
@@ -65,6 +66,10 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
                     from_str::<select_event_option_action::SelectEventOptionAction>(&adata.to_string())
                         .unwrap(),
                 ),
+                "resolveChallengeAction" => Box::new(
+                    from_str::<resolve_challenge_action::ResolveChallengeAction>(&adata.to_string())
+                        .unwrap(),
+                ),
                 _ => Box::new(NoAction)
             };
         }
@@ -90,15 +95,13 @@ impl Display for NoAction {
 
 #[derive(Deserialize)]
 struct StopDrawingForDeckAction {
-    player_ix: usize
+    player_ix: usize,
 }
 
 impl Action for StopDrawingForDeckAction {
     fn execute(&self, state: &GameState) -> Update {
         Ok(state.clone())
-            .map(|g| {
-                g.prompt_str("chooseTokenForDeckAction")
-            })
+            .map(|g| g.prompt_str("chooseTokenForDeckAction"))
     }
 }
 

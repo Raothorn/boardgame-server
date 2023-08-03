@@ -13,9 +13,9 @@ pub struct EndTurnAction {
 
 impl Action for EndTurnAction {
     fn execute(&self, state: &GameState) -> Update {
-        if let GamePhase::EventPhase(Some(_)) = state.phase {
+        if let GamePhase::EventPhase(Some(_)) = state.phase() {
             let mut gs = state.clone();
-            gs.phase = GamePhase::ShipAction(None);
+            gs.set_phase(GamePhase::ShipAction(None));
             Ok(gs)
         } else {
             Err("You can't end the turn yet".to_owned())

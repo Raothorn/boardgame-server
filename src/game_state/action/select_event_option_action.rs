@@ -11,24 +11,23 @@ pub struct SelectEventOptionAction {
 
 impl Action for SelectEventOptionAction {
     fn execute(&self, state: &GameState) -> Update {
-        let gs = state.clone();
+        let mut gs = state.clone();
 
-        if let GamePhase::EventPhase(Some(ref card)) = gs.phase {
+        if let GamePhase::EventPhase(Some(ref card)) = gs.phase() {
             let option = card.options.get(self.option_ix);
             match option {
                 Some(option) => {
-                    (option.handle_option)(&gs)
+                    gs.event_card_deck.add_to_discard(card);
+                    Ok(gs)
+                        .and_then(|g| g.set_phase(GamePhase::ShipAction(None)))
+                        .map(|g| g.clear_prompt("selectEventOption"))
+                        .and_then(|g| (option.handle_option)(&g))
                 }
                 None => Err("option index not valid".to_owned()),
             }
         } else {
             Err("wrong phase".to_owned())
         }
-        .map(|g| GameState {
-            phase: GamePhase::ShipAction(None),
-            prompt: None,
-            ..g
-        })
     }
 }
 

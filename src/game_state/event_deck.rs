@@ -1,6 +1,8 @@
 use serde::Serialize;
 
-use super::{Update, GameState};
+use crate::game_state::{Challenge, Skill};
+
+use super::{GameState, Update};
 
 #[derive(Clone, Serialize)]
 pub struct EventCard {
@@ -13,19 +15,37 @@ pub struct EventCard {
 pub struct EventOption {
     pub text: String,
     #[serde(skip_serializing)]
-    pub handle_option: fn(&GameState) -> Update
+    pub handle_option: fn(&GameState) -> Update,
 }
 
 pub fn event_deck() -> Vec<EventCard> {
-    let ev1 = EventCard {
-        name: "Biting Starfish".to_owned(),
-        options: vec! [
-            EventOption { text:"Gain 1 Coin".to_owned(), handle_option: gain_coin },
-            EventOption { text:"Gain 1 Meat".to_owned(), handle_option: gain_meat }
-        ]
-    };
-
-    vec![ev1]
+    vec![
+        EventCard {
+            name: "Biting Starfish".to_owned(),
+            options: vec![
+                EventOption {
+                    text: "Gain 1 Coin".to_owned(),
+                    handle_option: gain_coin,
+                },
+                EventOption {
+                    text: "Gain 1 Meat".to_owned(),
+                    handle_option: gain_meat,
+                },
+            ],
+        },
+        EventCard {
+            name: "Broken Biplane".to_owned(),
+            options: vec![EventOption {
+                text: "Help repair the airplane: CRAFT 8".to_owned(),
+                handle_option: (|g| {
+                    g.challenge(Challenge {
+                        skill: Skill::Craft,
+                        amount: 3,
+                    })
+                }),
+            }],
+        },
+    ]
 }
 
 fn gain_coin(state: &GameState) -> Update {

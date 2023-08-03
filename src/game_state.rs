@@ -1,29 +1,42 @@
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{json, Value};
 
 pub mod action;
 #[allow(dead_code, unreachable_code, unused_variables)]
 pub mod event_deck;
 
-use event_deck::EventCard;
-
 use self::event_deck::event_deck;
+use event_deck::EventCard;
 
 #[derive(Clone, Serialize)]
 enum GamePhase {
     ShipAction(Option<ShipActionSubphase>),
-    EventPhase(Option<EventCard>)
+    EventPhase(Option<EventCard>),
+    ChallengePhase(Challenge),
 }
 
 #[derive(Clone, Serialize)]
 enum ShipActionSubphase {
-    GalleyAction { gain_phase_complete: bool },
-    DeckAction   { search_tokens_drawn: Vec<SearchToken> }
+    GalleyAction {
+        gain_phase_complete: bool,
+    },
+    DeckAction {
+        search_tokens_drawn: Vec<SearchToken>,
+    },
+}
+
+#[derive(Clone, Serialize)]
+struct Challenge {
+    skill: Skill,
+    amount: u32,
 }
 
 #[derive(Clone, Serialize)]
 pub struct GameState {
-    phase: GamePhase,
+    #[serde(serialize_with = "gamestate_phase", rename="phase")]
+    phase_stack: Vec<GamePhase>,
     players: Vec<Player>,
     crew: Vec<Crew>,
     ability_deck: Deck<AbilityCard>,
@@ -34,19 +47,37 @@ pub struct GameState {
     pub prompt: Option<Value>,
 }
 
+fn gamestate_phase<S>(
+    phase_stack: &Vec<GamePhase>,
+    ser: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    phase_stack.last().unwrap().serialize(ser)
+}
+
 impl GameState {
     pub fn init_state() -> GameState {
         GameState {
-            phase: GamePhase::ShipAction(None),
+            phase_stack: vec![GamePhase::ShipAction(None)],
             players: vec![Player::default()],
             crew: vec![
                 Crew {
                     name: String::from("Sofi Odessa"),
                     fatigue: 1,
+                    skills: HashMap::from([
+                        (Skill::Savvy, 4),
+                        (Skill::Craft, 2),
+                    ]),
                 },
                 Crew {
                     name: String::from("Laurant Lapointe"),
                     fatigue: 0,
+                    skills: HashMap::from([
+                        (Skill::Savvy, 4),
+                        (Skill::Craft, 2),
+                    ]),
                 },
             ],
             room: ShipRoom::None,
@@ -57,23 +88,62 @@ impl GameState {
             },
             prompt: None,
             ability_deck: Deck::new(vec![
-                AbilityCard{name: "card1".to_owned()},
-                AbilityCard{name: "card2".to_owned()},
-                AbilityCard{name: "card3".to_owned()},
+                AbilityCard {
+                    name: "card1".to_owned(),
+                },
+                AbilityCard {
+                    name: "card2".to_owned(),
+                },
+                AbilityCard {
+                    name: "card3".to_owned(),
+                },
             ]),
             search_token_deck: Deck::new(
-                (1..8).into_iter().map(|n| SearchToken(n)).collect()
+                (1..8).into_iter().map(|n| SearchToken(n)).collect(),
             ),
-            event_card_deck: Deck::new(event_deck())
+            event_card_deck: Deck::new(event_deck()),
         }
     }
 
-    fn add_player(&self, player: Player) -> Update {
+    fn phase(&self) -> GamePhase {
+        return self.phase_stack.last().unwrap().clone();
+    }
+
+    // TODO doesn't need to be a result
+    fn set_phase(&self, new_phase: GamePhase) -> Update {
         let mut gs = self.clone();
-        gs.players.push(player);
+        gs.phase_stack.pop();
+        gs.phase_stack.push(new_phase);
+        Ok(gs)
+    }
+
+    fn push_phase(&self, phase: GamePhase) -> GameState {
+        let mut gs = self.clone();
+        gs.phase_stack.push(phase);
+        gs
+    }
+
+    fn pop_phase(&self) -> Update {
+        let mut gs = self.clone();
+        gs.phase_stack.pop();
 
         Ok(gs)
     }
+
+    fn challenge(&self, challenge: Challenge) -> Update {
+        Ok(self.clone())
+            .map(|g| {
+                g.push_phase(GamePhase::ChallengePhase(challenge))
+            })
+            .map(|g| g.prompt_str("resolveChallenge"))
+    }
+
+    // fn add_player(&self, player: Player) -> Update {
+    //     let mut gs = self.clone();
+    //     gs.players.push(player);
+    //
+    //     Ok(gs)
+    // }
 
     fn give_command_tokens(
         self,
@@ -100,9 +170,8 @@ impl GameState {
 
         if let Some(player) = gs.players.get_mut(player_ix) {
             for _ in 0..amount {
-                if let Ok((card, deck)) = gs.ability_deck.draw() {
+                if let Ok(card) = gs.ability_deck.draw() {
                     player.add_card(card);
-                    gs.ability_deck = deck;
                 }
 
                 // if let Some(card) = card {
@@ -128,7 +197,7 @@ impl GameState {
             match player.discard_card(card_ix) {
                 Ok((player, card)) => {
                     gs.players[player_ix] = player;
-                    gs.ability_deck = gs.ability_deck.add_to_discard(card);
+                    gs.ability_deck.add_to_discard(&card);
                     Ok(gs)
                 }
                 Err(err) => Err(err),
@@ -143,6 +212,16 @@ impl GameState {
         };
 
         Ok(gs)
+    }
+
+    fn clear_prompt(self, msg: &str) -> GameState {
+        let gs = self.clone();
+        match self.prompt {
+            Some(Value::String(prompt)) if prompt == msg => {
+                gs.prompt(&Value::Null)
+            }
+            _ => gs,
+        }
     }
 
     fn prompt_str(self, msg: &str) -> GameState {
@@ -164,6 +243,7 @@ impl GameState {
 struct Crew {
     name: String,
     fatigue: u32,
+    skills: HashMap<Skill, u32>,
 }
 
 impl Crew {
@@ -177,25 +257,30 @@ impl Crew {
 #[derive(Serialize, Clone)]
 struct Deck<T: Clone> {
     items: Vec<T>,
-    discard: Vec<T>
+    discard: Vec<T>,
 }
 
-impl<T:Clone> Deck<T> {
+impl<T: Clone> Deck<T> {
     fn new(items: Vec<T>) -> Self {
-        Deck { items: items, discard: Vec::new() }
+        Deck {
+            items,
+            discard: Vec::new(),
+        }
     }
 
-    fn draw(&self) -> Result<(T, Self), String> {
-        let mut deck = self.clone();
-        deck.items.pop()
+    fn draw(&mut self) -> Result<T, String> {
+        if self.items.len() == 0 {
+            self.items.append(&mut self.discard);
+            println!("none left");
+        }
+
+        self.items
+            .pop()
             .ok_or("No items left in the deck".to_string())
-            .map(|card| (card, deck))
     }
 
-    fn add_to_discard(&self, item: T) -> Self {
-        let mut deck = self.clone();
-        deck.discard.push(item);
-        deck
+    fn add_to_discard(&mut self, item: &T) {
+        self.discard.push(item.clone());
     }
 }
 
@@ -243,6 +328,13 @@ enum ShipRoom {
     Bridge,
     Deck,
     None,
+}
+
+#[derive(Clone, Serialize, Hash, PartialEq, Eq)]
+enum Skill {
+    Savvy,
+    Craft,
+    Wits,
 }
 
 #[derive(Clone, Serialize, Copy, Default)]

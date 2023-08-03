@@ -21,7 +21,7 @@ impl Action for ChooseTokenForDeckAction {
                 ShipActionSubphase::DeckAction {
                     ref search_tokens_drawn,
                 },
-            )) = state.phase
+            )) = state.phase()
             {
                 if search_tokens_drawn.len() < 1 {
                     Err("You must draw at least 1 token".to_owned())
@@ -45,12 +45,12 @@ impl Action for ChooseTokenForDeckAction {
         t.and_then(|(token, discards)| {
             let mut gs = state.clone();
             for discard in discards {
-                gs.search_token_deck =
-                    gs.search_token_deck.add_to_discard(discard);
+                gs.search_token_deck.add_to_discard(&discard);
             }
             gs.prompt = None;
-            gs.phase = GamePhase::EventPhase(None);
-            gs.apply_search_tokens(&token)
+            Ok(gs)
+                .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
+                .and_then(|g| g.apply_search_tokens(&token))
         })
     }
 }

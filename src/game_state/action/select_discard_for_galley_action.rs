@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use serde::Deserialize;
+use serde_json::Value;
 
 use super::Action;
 use crate::game_state::{GamePhase, GameState, ShipActionSubphase, Update};
@@ -16,7 +17,7 @@ pub struct SelectDiscardForGalleyAction {
 fn validate(state: &GameState) -> Update {
     if let GamePhase::ShipAction(
         Some(ShipActionSubphase::GalleyAction { gain_phase_complete: true })
-    ) = &state.phase {
+    ) = &state.phase() {
         Ok(state.clone())
     } else {
         Err("Wrong phase".to_owned())
@@ -27,13 +28,8 @@ impl Action for SelectDiscardForGalleyAction {
     fn execute(&self, state: &GameState) -> Update {
         let gs = Ok(state.clone())
                     .and_then(|g| validate(&g))
-                    .map(|g| {
-                        GameState {
-                            phase: GamePhase::EventPhase(None),
-                            prompt: None,
-                            ..g
-                        }
-                    });
+                    .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
+                    .map(|g| g.prompt(&Value::Null));
 
         if self.decline {
             gs
