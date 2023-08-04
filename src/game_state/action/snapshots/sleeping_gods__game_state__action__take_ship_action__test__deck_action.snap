@@ -1,0 +1,115 @@
+---
+source: src/game_state/action/take_ship_action.rs
+expression: result.unwrap()
+---
+{
+  "phase": {
+    "ShipAction": {
+      "DeckAction": {
+        "search_tokens_drawn": []
+      }
+    }
+  },
+  "players": [
+    {
+      "command_tokens": 0,
+      "hand": []
+    }
+  ],
+  "crew": [
+    {
+      "name": "Sofi Odessa",
+      "fatigue": 0,
+      "skills": {
+        "Craft": 2,
+        "Savvy": 4
+      }
+    },
+    {
+      "name": "Laurant Lapointe",
+      "fatigue": 0,
+      "skills": {
+        "Craft": 2,
+        "Savvy": 4
+      }
+    }
+  ],
+  "ability_deck": {
+    "items": [
+      {
+        "name": "1"
+      },
+      {
+        "name": "2"
+      },
+      {
+        "name": "3"
+      },
+      {
+        "name": "4"
+      },
+      {
+        "name": "5"
+      },
+      {
+        "name": "6"
+      },
+      {
+        "name": "7"
+      },
+      {
+        "name": "8"
+      },
+      {
+        "name": "9"
+      }
+    ],
+    "discard": []
+  },
+  "search_token_deck": {
+    "items": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "discard": []
+  },
+  "event_card_deck": {
+    "items": [
+      {
+        "name": "Biting Starfish",
+        "options": [
+          {
+            "text": "Gain 1 Coin"
+          },
+          {
+            "text": "Gain 1 Meat"
+          }
+        ]
+      },
+      {
+        "name": "Broken Biplane",
+        "options": [
+          {
+            "text": "Help repair the airplane: CRAFT 8"
+          }
+        ]
+      }
+    ],
+    "discard": []
+  },
+  "room": "Deck",
+  "resources": {
+    "coins": 0,
+    "grain": 0,
+    "meat": 0
+  },
+  "prompt": {
+    "promptData": {},
+    "promptType": "drawForDeckAction"
+  }
+}
