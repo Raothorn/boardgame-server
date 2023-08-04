@@ -107,9 +107,5 @@ expression: result.unwrap()
     "coins": 0,
     "grain": 0,
     "meat": 0
-  },
-  "prompt": {
-    "promptData": {},
-    "promptType": "drawForDeckAction"
   }
 }

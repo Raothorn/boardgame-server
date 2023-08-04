@@ -18,7 +18,6 @@ impl Action for HandleEventPhaseAction {
 
             match gs.event_card_deck.draw() {
                 Ok(event_card) => Ok(gs)
-                    .map(|g| g.prompt_str("selectEventOption"))
                     .and_then(|g| {
                         g.set_phase(GamePhase::EventPhase(Some(
                             event_card,
