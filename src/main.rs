@@ -1,3 +1,8 @@
+mod game_state;
+mod server;
+
+use server::run_server;
+
 fn main() {
-    println!("Hello, world!");
+    run_server();
 }
