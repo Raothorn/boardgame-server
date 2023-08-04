@@ -32,7 +32,7 @@ pub struct GameState {
     event_card_deck: Deck<EventCard>,
     room: ShipRoom,
     resources: Resources,
-    pub prompt: Option<Value>,
+    pub prompt: Option<String>,
 }
 
 fn gamestate_phase<S>(
@@ -189,27 +189,28 @@ impl GameState {
 
     fn clear_prompt(self, msg: &str) -> GameState {
         let gs = self.clone();
+        println!("{:?}  {}", self.prompt, msg);
         match self.prompt {
-            Some(Value::String(prompt)) if prompt == msg => {
-                gs.prompt(&Value::Null)
+            Some(prompt) if prompt == msg => {
+                gs.prompt = None;
             }
-            _ => gs,
+            _ => ()
         }
+
+        gs
     }
 
     fn prompt_str(self, msg: &str) -> GameState {
-        let msg_obj = json!({
-            "promptType": msg,
-            "promptData": {}
-        });
-        self.prompt(&msg_obj)
-    }
-
-    fn prompt(self, msg: &Value) -> GameState {
         let mut gs = self.clone();
         gs.prompt = Some(msg.to_owned());
         gs
     }
+
+    // fn prompt(self, msg: &Value) -> GameState {
+    //     let mut gs = self.clone();
+    //     gs.prompt = Some(msg.to_owned());
+    //     gs
+    // }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Default)]

@@ -42,7 +42,7 @@ impl Action for ResolveChallengeAction {
             Err("Wrong phase".to_owned())
         }
         .and_then(|g| g.pop_phase())
-        .map(|g| g.prompt(&Value::Null))
+        .map(|g| g.clear_prompt("resolveChallenge"))
     }
 }
 

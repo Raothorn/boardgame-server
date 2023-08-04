@@ -32,7 +32,7 @@ impl Action for SelectDiscardForGalleyAction {
         let gs = Ok(state.clone())
             .and_then(|g| validate(&g))
             .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
-            .map(|g| g.prompt(&Value::Null));
+            .map(|g| g.clear_prompt(""));
 
         if self.decline {
             gs
