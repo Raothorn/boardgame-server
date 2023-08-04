@@ -45,10 +45,6 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
                     from_str::<draw_for_deck_action::DrawForDeckAction>(&adata.to_string())
                         .unwrap(),
                 ),
-                "stopDrawingForDeckAction" => Box::new(
-                    from_str::<StopDrawingForDeckAction>(&adata.to_string())
-                        .unwrap(),
-                ),
                 "chooseTokenForDeckAction" => Box::new(
                     from_str::<choose_token_for_deck_action::ChooseTokenForDeckAction>(&adata.to_string())
                         .unwrap(),
@@ -85,24 +81,5 @@ impl Action for NoAction {
 impl Display for NoAction {
     fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Ok(())
-    }
-}
-
-#[derive(Deserialize)]
-struct StopDrawingForDeckAction {
-    #[allow(dead_code)]
-    player_ix: usize,
-}
-
-impl Action for StopDrawingForDeckAction {
-    fn execute(&self, state: &GameState) -> Update {
-        Ok(state.clone())
-            .map(|g| g.prompt_str("chooseTokenForDeckAction"))
-    }
-}
-
-impl Display for StopDrawingForDeckAction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Stop Drawing For Deck Action")
     }
 }

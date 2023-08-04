@@ -23,7 +23,6 @@ impl Action for SelectEventOptionAction {
                         .and_then(|g| {
                             g.set_phase(GamePhase::ShipAction(None))
                         })
-                        .map(|g| g.clear_prompt("selectEventOption"))
                         .and_then(|g| (option.handle_option)(&g))
                 }
                 None => Err("option index not valid".to_owned()),

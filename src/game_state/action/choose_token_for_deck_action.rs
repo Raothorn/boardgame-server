@@ -46,7 +46,6 @@ impl Action for ChooseTokenForDeckAction {
             for discard in discards {
                 gs.search_token_deck.add_to_discard(&discard);
             }
-            gs.prompt = None;
             Ok(gs)
                 .and_then(|g| {
                     g.set_phase(GamePhase::EventPhase(None))

@@ -31,8 +31,7 @@ impl Action for SelectDiscardForGalleyAction {
     fn execute(&self, state: &GameState) -> Update {
         let gs = Ok(state.clone())
             .and_then(|g| validate(&g))
-            .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
-            .map(|g| g.clear_prompt(""));
+            .and_then(|g| g.set_phase(GamePhase::EventPhase(None)));
 
         if self.decline {
             gs

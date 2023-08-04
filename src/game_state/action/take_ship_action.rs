@@ -38,7 +38,6 @@ impl TakeShipAction {
                 ..g
             })
             .and_then(|g| g.set_phase(phase))
-            .map(|g| g.prompt_str("drawForDeckAction"))
     }
 
     fn galley_action(&self, state: &GameState) -> Update {
@@ -51,7 +50,6 @@ impl TakeShipAction {
             .and_then(|g| g.draw_cards(self.player_ix, 2))
             .and_then(|g| g.set_room(&ShipRoom::Galley))
             .and_then(|g| g.set_phase(phase))
-            .map(|g| g.prompt_str("selectDiscardForGalleyAction"))
     }
 }
 

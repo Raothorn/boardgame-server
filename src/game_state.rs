@@ -32,7 +32,6 @@ pub struct GameState {
     event_card_deck: Deck<EventCard>,
     room: ShipRoom,
     resources: Resources,
-    pub prompt: Option<String>,
 }
 
 fn gamestate_phase<S>(
@@ -56,7 +55,6 @@ impl GameState {
             ],
             room: ShipRoom::None,
             resources: Resources::default(),
-            prompt: None,
             ability_deck: Deck::new(
                 (1..10)
                     .into_iter()
@@ -102,7 +100,6 @@ impl GameState {
             .map(|g| {
                 g.push_phase(GamePhase::ChallengePhase(challenge))
             })
-            .map(|g| g.prompt_str("resolveChallenge"))
     }
 
     // fn add_player(&self, player: Player) -> Update {
@@ -186,31 +183,6 @@ impl GameState {
 
         Ok(gs)
     }
-
-    fn clear_prompt(self, msg: &str) -> GameState {
-        let gs = self.clone();
-        println!("{:?}  {}", self.prompt, msg);
-        match self.prompt {
-            Some(prompt) if prompt == msg => {
-                gs.prompt = None;
-            }
-            _ => ()
-        }
-
-        gs
-    }
-
-    fn prompt_str(self, msg: &str) -> GameState {
-        let mut gs = self.clone();
-        gs.prompt = Some(msg.to_owned());
-        gs
-    }
-
-    // fn prompt(self, msg: &Value) -> GameState {
-    //     let mut gs = self.clone();
-    //     gs.prompt = Some(msg.to_owned());
-    //     gs
-    // }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Default)]
