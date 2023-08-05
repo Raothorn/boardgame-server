@@ -48,6 +48,11 @@ struct ServerState {
 }
 
 impl ServerState {
+    fn reset(&self) {
+        let mut manager = self.manager.lock().unwrap();
+        manager.restart();
+    }
+
     fn add_client(&self, addr: &str, client: Sender) {
         let mut clients = self.clients.lock().unwrap();
 
@@ -176,6 +181,8 @@ pub fn run_server() {
                     }
                     Ok(OwnedMessage::Close(_)) => {
                         println!("closing");
+                        // Comment this line to prevent restart on reload
+                        state.reset();
                         break;
                     }
                     _ => {}

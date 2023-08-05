@@ -8,7 +8,10 @@ use super::{
 pub enum GamePhase {
     ShipAction(Option<ShipActionSubphase>),
     EventPhase(Option<EventCard>),
-    ChallengePhase(Challenge),
+    ChallengePhase {
+        challenge: Challenge,
+        added: Option<u32>
+    },
 }
 
 #[derive(Clone, Serialize, Default)]

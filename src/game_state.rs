@@ -50,8 +50,14 @@ impl GameState {
             phase_stack: vec![GamePhase::ShipAction(None)],
             players: vec![Player::default()],
             crew: vec![
-                Crew::new("Sofi Odessa", 4, 2),
-                Crew::new("Laurant Lapointe", 4, 2),
+                Crew::new("Rafael Vieira", 0, 1, 1, 0, 0),
+                Crew::new("Audrie Williams", 0, 1, 0, 0, 1),
+                Crew::new("Katsumi Aoshima", 1, 0, 0, 1, 1),
+                Crew::new("Kannan Sharma", 1, 0, 1, 1, 0),
+                Crew::new("Sofi Odessa", 1, 1, 1, 1, 1),
+                Crew::new("Gregory Little", 1, 0, 1, 0, 0),
+                Crew::new("Laurant Lapointe", 1, 1, 1, 0, 1),
+                Crew::new("Marco Reyes", 0, 0, 1, 1, 0)
             ],
             room: ShipRoom::None,
             resources: Resources::default(),
@@ -98,16 +104,12 @@ impl GameState {
     fn challenge(&self, challenge: Challenge) -> Update {
         Ok(self.clone())
             .map(|g| {
-                g.push_phase(GamePhase::ChallengePhase(challenge))
+                g.push_phase(GamePhase::ChallengePhase {
+                    challenge,
+                    added: None
+                })
             })
     }
-
-    // fn add_player(&self, player: Player) -> Update {
-    //     let mut gs = self.clone();
-    //     gs.players.push(player);
-    //
-    //     Ok(gs)
-    // }
 
     fn give_command_tokens(
         self,
@@ -174,15 +176,6 @@ impl GameState {
             }
         }
     }
-
-    fn reduce_fatigue(self, crew_ix: usize) -> Update {
-        let mut gs = self.clone();
-        if let Some(crew) = gs.crew.get_mut(crew_ix) {
-            crew.reduce_fatigue()
-        };
-
-        Ok(gs)
-    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Default)]
@@ -202,6 +195,8 @@ pub enum ShipRoom {
     Galley,
     Bridge,
     Deck,
+    Quarters,
+    Sickbay,
     None,
 }
 

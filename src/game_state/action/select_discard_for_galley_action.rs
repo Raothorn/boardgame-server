@@ -39,7 +39,11 @@ impl Action for SelectDiscardForGalleyAction {
             gs.and_then(|g| {
                 g.discard_card(self.player_ix, self.discard_ix)
             })
-            .and_then(|g| g.reduce_fatigue(self.crew_ix))
+            .map(|g| {
+                let mut g = g.clone();
+                g.crew[self.crew_ix].change_fatigue(-1);
+                g
+            })
         }
     }
 }
