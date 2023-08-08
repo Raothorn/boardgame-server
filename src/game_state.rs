@@ -1,40 +1,47 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize, Serializer};
-use serde_json::{json, Value};
-
 pub mod action;
 pub mod challenge;
+pub mod client_message;
 pub mod crew;
 pub mod deck;
 pub mod event_deck;
 pub mod game_phase;
 pub mod player;
 pub mod skill;
+pub mod ability_card_deck;
 
-use self::event_deck::event_deck;
+use self::{event_deck::event_deck, ability_card_deck::ability_card_deck};
 use challenge::Challenge;
+use client_message::ClientMessage;
 use crew::Crew;
 use deck::Deck;
 use event_deck::EventCard;
+use ability_card_deck::AbilityCard;
 use game_phase::GamePhase;
 use player::Player;
 use skill::Skill;
 
 #[derive(Clone, Serialize)]
 pub struct GameState {
-    #[serde(serialize_with = "gamestate_phase", rename = "phase")]
+    #[serde(serialize_with = "serialize_gamestate_phase", rename = "phase")]
     phase_stack: Vec<GamePhase>,
     players: Vec<Player>,
     crew: Vec<Crew>,
-    ability_deck: Deck<AbilityCard>,
-    search_token_deck: Deck<SearchToken>,
-    event_card_deck: Deck<EventCard>,
+
     room: ShipRoom,
     resources: Resources,
+    message_queue: Vec<ClientMessage>,
+
+    #[serde(skip_serializing)]
+    ability_deck: Deck<AbilityCard>,
+    #[serde(skip_serializing)]
+    search_token_deck: Deck<SearchToken>,
+    #[serde(skip_serializing)]
+    event_card_deck: Deck<EventCard>,
 }
 
-fn gamestate_phase<S>(
+// Serializers
+fn serialize_gamestate_phase<S>(
     phase_stack: &Vec<GamePhase>,
     ser: S,
 ) -> Result<S::Ok, S::Error>
@@ -44,6 +51,7 @@ where
     phase_stack.last().unwrap().serialize(ser)
 }
 
+// Impl
 impl GameState {
     pub fn init_state() -> GameState {
         GameState {
@@ -57,22 +65,16 @@ impl GameState {
                 Crew::new("Sofi Odessa", 1, 1, 1, 1, 1),
                 Crew::new("Gregory Little", 1, 0, 1, 0, 0),
                 Crew::new("Laurant Lapointe", 1, 1, 1, 0, 1),
-                Crew::new("Marco Reyes", 0, 0, 1, 1, 0)
+                Crew::new("Marco Reyes", 0, 0, 1, 1, 0),
             ],
             room: ShipRoom::None,
             resources: Resources::default(),
-            ability_deck: Deck::new(
-                (1..10)
-                    .into_iter()
-                    .map(|n| AbilityCard {
-                        name: n.to_string(),
-                    })
-                    .collect(),
-            ),
+            ability_deck: Deck::new(ability_card_deck()),
             search_token_deck: Deck::new(
                 (1..8).into_iter().map(|n| SearchToken(n)).collect(),
             ),
             event_card_deck: Deck::new(event_deck()),
+            message_queue: Vec::new(),
         }
     }
 
@@ -102,13 +104,12 @@ impl GameState {
     }
 
     fn challenge(&self, challenge: Challenge) -> Update {
-        Ok(self.clone())
-            .map(|g| {
-                g.push_phase(GamePhase::ChallengePhase {
-                    challenge,
-                    added: None
-                })
+        Ok(self.clone()).map(|g| {
+            g.push_phase(GamePhase::ChallengePhase {
+                challenge,
+                added: None,
             })
+        })
     }
 
     fn give_command_tokens(
@@ -119,7 +120,11 @@ impl GameState {
         let mut gs = self.clone();
         if let Some(player) = gs.players.get_mut(player_ix) {
             player.command_tokens += amount;
-            Ok(gs)
+            Ok(gs).and_then(|g| {
+                g.queue_message(ClientMessage::GainCommandPoints {
+                    amount,
+                })
+            })
         } else {
             Err("Player does not exist".to_owned())
         }
@@ -134,18 +139,19 @@ impl GameState {
     fn draw_cards(self, player_ix: usize, amount: u32) -> Update {
         let mut gs = self.clone();
 
+        let mut messages = Vec::new();
         if let Some(player) = gs.players.get_mut(player_ix) {
             for _ in 0..amount {
                 if let Ok(card) = gs.ability_deck.draw() {
+                    messages.push(ClientMessage::DrewAbilityCard {
+                        card: card.clone(),
+                    });
                     player.add_card(card);
                 }
-
-                // if let Some(card) = card {
-                //     player.add_card(card);
-                // }
             }
         }
 
+        gs.message_queue.append(&mut messages);
         Ok(gs)
     }
 
@@ -176,11 +182,20 @@ impl GameState {
             }
         }
     }
-}
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Default)]
-pub struct AbilityCard {
-    name: String,
+    fn queue_message(self, msg: ClientMessage) -> Update {
+        let mut gs = self.clone();
+        gs.message_queue.push(msg);
+        Ok(gs)
+    }
+
+    fn dequeue_message(self) -> Update {
+        let mut gs = self.clone();
+        gs.message_queue.pop();
+
+        // We don't want it to fail even if there is no message
+        Ok(gs)
+    }
 }
 
 #[derive(Clone, Serialize, Default)]

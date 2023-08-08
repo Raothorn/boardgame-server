@@ -13,6 +13,7 @@ mod select_discard_for_galley_action;
 mod select_event_option_action;
 mod take_ship_action;
 mod accept_challenge_result_action;
+mod accept_message_action;
 
 pub trait Action: fmt::Display {
     fn execute(&self, state: &GameState) -> Update {
@@ -63,6 +64,10 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action> {
                 ),
                 "acceptChallengeResultAction" => Box::new(
                     from_str::<accept_challenge_result_action::AcceptChallengeResultAction>(&adata.to_string())
+                        .unwrap(),
+                ),
+                "acceptMessageAction" => Box::new(
+                    from_str::<accept_message_action::AcceptMessageAction>(&adata.to_string())
                         .unwrap(),
                 ),
                 _ => Box::new(NoAction)
