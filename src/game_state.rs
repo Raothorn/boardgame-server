@@ -9,6 +9,7 @@ pub mod game_phase;
 pub mod player;
 pub mod skill;
 pub mod ability_card_deck;
+pub mod map;
 
 use self::{event_deck::event_deck, ability_card_deck::ability_card_deck};
 use challenge::Challenge;

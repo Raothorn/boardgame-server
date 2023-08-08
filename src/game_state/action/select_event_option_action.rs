@@ -21,7 +21,7 @@ impl Action for SelectEventOptionAction {
                     gs.event_card_deck.add_to_discard(card);
                     Ok(gs)
                         .and_then(|g| {
-                            g.set_phase(GamePhase::ShipActionPhase(None))
+                            g.set_phase(GamePhase::MainActionPhase(Vec::new()))
                         })
                         .and_then(|g| (option.handle_option)(&g))
                 }

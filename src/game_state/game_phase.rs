@@ -8,6 +8,7 @@ use super::{
 pub enum GamePhase {
     ShipActionPhase(Option<ShipActionSubphase>),
     EventPhase(Option<EventCard>),
+    MainActionPhase(Vec<MainActionSubphase>),
     ChallengePhase {
         challenge: Challenge,
         added: Option<u32>
@@ -21,4 +22,10 @@ pub enum ShipActionSubphase {
     DeckAction {
         search_tokens_drawn: Vec<SearchToken>,
     },
+}
+
+#[derive(Clone, Serialize, Default)]
+pub enum MainActionSubphase {
+    #[default]
+    Travel
 }

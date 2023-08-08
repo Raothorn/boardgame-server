@@ -3,6 +3,7 @@ use std::fmt::Display;
 use serde::Deserialize;
 
 use super::Action;
+
 use crate::game_state::{
     game_phase::ShipActionSubphase, GamePhase, GameState, ShipRoom,
     Update,
