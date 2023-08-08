@@ -109,7 +109,7 @@ impl ServerState {
                 self.notify(addr, &err);
             }
             None => {
-                println!("Action executed successfully.");
+                println!("Action {} executed successfully.", action);
 
                 drop(manager);
                 self.broadcast_gamestate();

@@ -1,13 +1,13 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::Action;
 use crate::game_state::{
     game_phase::ShipActionSubphase, GamePhase, GameState, Update,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct SelectDiscardForGalleyAction {
     decline: bool,
     discard_ix: usize,
@@ -26,6 +26,7 @@ fn validate(state: &GameState) -> Update {
     }
 }
 
+#[typetag::serde(name="selectDiscardForGalleyAction")]
 impl Action for SelectDiscardForGalleyAction {
     fn execute(&self, state: &GameState) -> Update {
         let gs = Ok(state.clone())

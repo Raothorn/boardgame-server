@@ -1,15 +1,16 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::Action;
 use crate::game_state::{GamePhase, GameState, Update};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct SelectEventOptionAction {
     option_ix: usize,
     #[allow(dead_code)]
     player_ix: usize,
 }
 
+#[typetag::serde(name="selectEventOptionAction")]
 impl Action for SelectEventOptionAction {
     fn execute(&self, state: &GameState) -> Update {
         let mut gs = state.clone();

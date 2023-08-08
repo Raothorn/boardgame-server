@@ -1,18 +1,18 @@
-
 use std::fmt::Display;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::game_state::game_phase::GamePhase;
 
 use super::Action;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct AcceptChallengeResultAction {
     #[allow(dead_code)]
     player_ix: usize
 }
 
+#[typetag::serde(name="acceptChallengeResultAction")]
 impl Action for AcceptChallengeResultAction {
     fn execute(&self, state: &crate::game_state::GameState) -> crate::game_state::Update {
         

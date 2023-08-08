@@ -27,5 +27,5 @@ pub enum ShipActionSubphase {
 #[derive(Clone, Serialize, Default)]
 pub enum MainActionSubphase {
     #[default]
-    Travel
+    Travel,
 }

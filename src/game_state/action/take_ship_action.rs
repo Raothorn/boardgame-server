@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::Action;
 
@@ -9,7 +9,7 @@ use crate::game_state::{
     Update,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct TakeShipAction {
     room: ShipRoom,
     player_ix: usize,
@@ -54,6 +54,7 @@ impl TakeShipAction {
     }
 }
 
+#[typetag::serde(name="takeShipAction")]
 impl Action for TakeShipAction {
     fn execute(&self, state: &GameState) -> Update {
         if let GamePhase::ShipActionPhase(None) = &state.phase() {

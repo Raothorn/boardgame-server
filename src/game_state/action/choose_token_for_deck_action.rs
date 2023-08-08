@@ -1,18 +1,19 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::Action;
 use crate::game_state::game_phase::ShipActionSubphase;
 use crate::game_state::{GamePhase, GameState, SearchToken, Update};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ChooseTokenForDeckAction {
     token_id: u32,
     #[allow(dead_code)]
     player_ix: usize,
 }
 
+#[typetag::serde(name="chooseTokenForDeckAction")]
 impl Action for ChooseTokenForDeckAction {
     fn execute(&self, state: &GameState) -> Update {
         let t: Result<(SearchToken, Vec<SearchToken>), String> =

@@ -1,17 +1,18 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::game_state::{Update, GameState};
 
 use super::Action;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct AcceptMessageAction {
     #[allow(dead_code)]
     player_ix: usize,
 }
 
+#[typetag::serde(name="acceptMessageAction")]
 impl Action for AcceptMessageAction {
     fn execute(
         &self,

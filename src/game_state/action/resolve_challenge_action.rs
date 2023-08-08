@@ -1,13 +1,13 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::Action;
 use crate::game_state::{
     challenge::Challenge, GamePhase, GameState, Update,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ResolveChallengeAction {
     selected_crew: Vec<usize>,
 }
@@ -27,6 +27,7 @@ impl ResolveChallengeAction {
     }
 }
 
+#[typetag::serde(name="resolveChallengeAction")]
 impl Action for ResolveChallengeAction {
     fn execute(&self, state: &GameState) -> Update {
         let gs = state.clone();
