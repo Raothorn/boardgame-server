@@ -42,7 +42,7 @@ pub struct GameState {
 
 // Serializers
 fn serialize_gamestate_phase<S>(
-    phase_stack: &Vec<GamePhase>,
+    phase_stack: &[GamePhase],
     ser: S,
 ) -> Result<S::Ok, S::Error>
 where
@@ -71,7 +71,7 @@ impl GameState {
             resources: Resources::default(),
             ability_deck: Deck::new(ability_card_deck()),
             search_token_deck: Deck::new(
-                (1..8).into_iter().map(|n| SearchToken(n)).collect(),
+                (1..8).map(SearchToken).collect(),
             ),
             event_card_deck: Deck::new(event_deck()),
             message_queue: Vec::new(),

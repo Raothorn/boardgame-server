@@ -115,7 +115,7 @@ mod test {
 
     #[test_case(Sa(Some(Sas::default())); "Current in ship action")]
     #[test_case(Ep(None); "In event phase")]
-    #[test_case(Cp(Challenge::default()); "In challenge phase")]
+    #[test_case(Cp {challenge: Challenge::default(), added: None}; "In challenge phase")]
     fn test_takeshipaction_err_if_wrong_phase(phase: GamePhase) {
         let gs = GameState::init_state().set_phase(phase).unwrap();
 

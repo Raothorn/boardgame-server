@@ -23,7 +23,7 @@ impl ResolveChallengeAction {
             let crew = &state.crew[*crew_ix];
             total += crew.skills[&challenge.skill];
         }
-        return total;
+        total
     }
 }
 

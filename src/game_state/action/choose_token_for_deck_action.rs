@@ -22,7 +22,7 @@ impl Action for ChooseTokenForDeckAction {
                 },
             )) = state.phase()
             {
-                if search_tokens_drawn.len() < 1 {
+                if search_tokens_drawn.is_empty() {
                     Err("You must draw at least 1 token".to_owned())
                 } else {
                     let (tokens, discards): (
@@ -35,7 +35,7 @@ impl Action for ChooseTokenForDeckAction {
                     tokens
                         .first()
                         .ok_or("Couldn't find token id".to_owned())
-                        .map(|t| (t.clone(), discards))
+                        .map(|t| (*t, discards))
                 }
             } else {
                 Err("wrong phase".to_owned())
