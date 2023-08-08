@@ -6,7 +6,7 @@ use super::{
 
 #[derive(Clone, Serialize)]
 pub enum GamePhase {
-    ShipAction(Option<ShipActionSubphase>),
+    ShipActionPhase(Option<ShipActionSubphase>),
     EventPhase(Option<EventCard>),
     ChallengePhase {
         challenge: Challenge,

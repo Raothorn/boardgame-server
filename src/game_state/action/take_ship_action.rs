@@ -27,7 +27,7 @@ impl TakeShipAction {
     }
 
     fn deck_action(&self, state: &GameState) -> Update {
-        let phase = GamePhase::ShipAction(Some(
+        let phase = GamePhase::ShipActionPhase(Some(
             ShipActionSubphase::DeckAction {
                 search_tokens_drawn: Vec::new(),
             },
@@ -41,7 +41,7 @@ impl TakeShipAction {
     }
 
     fn galley_action(&self, state: &GameState) -> Update {
-        let phase = GamePhase::ShipAction(Some(
+        let phase = GamePhase::ShipActionPhase(Some(
             ShipActionSubphase::GalleyAction
         ));
 
@@ -55,7 +55,7 @@ impl TakeShipAction {
 
 impl Action for TakeShipAction {
     fn execute(&self, state: &GameState) -> Update {
-        if let GamePhase::ShipAction(None) = &state.phase() {
+        if let GamePhase::ShipActionPhase(None) = &state.phase() {
             if state.room == self.room {
                 Err("You cannot visit the same room twice".to_owned())
             } else {
@@ -93,7 +93,7 @@ mod test {
     use crate::game_state::challenge::Challenge;
     use GamePhase::ChallengePhase as Cp;
     use GamePhase::EventPhase as Ep;
-    use GamePhase::ShipAction as Sa;
+    use GamePhase::ShipActionPhase as Sa;
     use ShipActionSubphase as Sas;
 
     #[test]

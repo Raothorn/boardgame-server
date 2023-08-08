@@ -16,7 +16,7 @@ pub struct ChooseTokenForDeckAction {
 impl Action for ChooseTokenForDeckAction {
     fn execute(&self, state: &GameState) -> Update {
         let t: Result<(SearchToken, Vec<SearchToken>), String> =
-            if let GamePhase::ShipAction(Some(
+            if let GamePhase::ShipActionPhase(Some(
                 ShipActionSubphase::DeckAction {
                     ref search_tokens_drawn,
                 },

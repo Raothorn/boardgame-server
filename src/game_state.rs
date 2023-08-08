@@ -55,7 +55,7 @@ where
 impl GameState {
     pub fn init_state() -> GameState {
         GameState {
-            phase_stack: vec![GamePhase::ShipAction(None)],
+            phase_stack: vec![GamePhase::ShipActionPhase(None)],
             players: vec![Player::default()],
             crew: vec![
                 Crew::new("Rafael Vieira", 0, 1, 1, 0, 0),

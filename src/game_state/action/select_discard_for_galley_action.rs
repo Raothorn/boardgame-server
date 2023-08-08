@@ -16,7 +16,7 @@ pub struct SelectDiscardForGalleyAction {
 }
 
 fn validate(state: &GameState) -> Update {
-    if let GamePhase::ShipAction(Some(
+    if let GamePhase::ShipActionPhase(Some(
         ShipActionSubphase::GalleyAction,
     )) = &state.phase()
     {
@@ -67,7 +67,7 @@ mod test {
 
     use super::*;
 
-    use GamePhase::ShipAction as Sa;
+    use GamePhase::ShipActionPhase as Sa;
     use ShipActionSubphase as Sas;
 
     #[test]
