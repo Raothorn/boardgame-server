@@ -2,7 +2,9 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::game_state::{game_phase::{GamePhase, MainActionSubphase}, GameState, Update};
+use crate::game_state::game_phase::GamePhase as Gp;
+use crate::game_state::game_phase::MainActionSubphase as Mas;
+use crate::game_state::{GameState, Update};
 
 use super::Action;
 
@@ -15,15 +17,16 @@ pub struct SelectMainAction {
 #[typetag::serde(name = "selectMainAction")]
 impl Action for SelectMainAction {
     fn execute(&self, state: &GameState) -> Update {
-        if let GamePhase::MainActionPhase(actions) = state.phase() {
-            let mut actions = actions.clone();
-            actions.push(MainActionSubphase::Travel);
-
-            let phase = GamePhase::MainActionPhase(actions);
+        // TODO  increase count here, not in travel_action
+        if let Gp::MainActionPhase(None, action_ct) = state.phase() {
+            let phase = if action_ct < 2 {
+                Gp::MainActionPhase(Some(Mas::Travel), action_ct + 1)
+            } else {
+                Gp::ShipActionPhase(None)
+            };
 
             Ok(state.clone()).and_then(|g| g.set_phase(phase))
-        }
-        else {
+        } else {
             Err("wrong phase".to_owned())
         }
     }

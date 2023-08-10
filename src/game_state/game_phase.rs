@@ -8,7 +8,7 @@ use super::{
 pub enum GamePhase {
     ShipActionPhase(Option<ShipActionSubphase>),
     EventPhase(Option<EventCard>),
-    MainActionPhase(Vec<MainActionSubphase>),
+    MainActionPhase(Option<MainActionSubphase>, u32),
     ChallengePhase {
         challenge: Challenge,
         added: Option<u32>
