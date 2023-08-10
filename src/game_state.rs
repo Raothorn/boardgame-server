@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize, Serializer};
+pub mod ability_card_deck;
 pub mod action;
 pub mod challenge;
 pub mod client_message;
@@ -6,28 +7,36 @@ pub mod crew;
 pub mod deck;
 pub mod event_deck;
 pub mod game_phase;
+pub mod map;
 pub mod player;
 pub mod skill;
-pub mod ability_card_deck;
-pub mod map;
 
-use self::{event_deck::event_deck, ability_card_deck::ability_card_deck};
+use self::{
+    ability_card_deck::ability_card_deck, event_deck::event_deck,
+    map::{GameMap, MapData}, map::SerialMap
+};
+use ability_card_deck::AbilityCard;
 use challenge::Challenge;
 use client_message::ClientMessage;
 use crew::Crew;
 use deck::Deck;
 use event_deck::EventCard;
-use ability_card_deck::AbilityCard;
 use game_phase::GamePhase;
 use player::Player;
 use skill::Skill;
 
 #[derive(Clone, Serialize)]
 pub struct GameState {
-    #[serde(serialize_with = "serialize_gamestate_phase", rename = "phase")]
+    #[serde(
+        serialize_with = "serialize_gamestate_phase",
+        rename = "phase"
+    )]
     phase_stack: Vec<GamePhase>,
+
     players: Vec<Player>,
     crew: Vec<Crew>,
+    #[serde(serialize_with = "serialize_map")]
+    map: GameMap,
 
     room: ShipRoom,
     resources: Resources,
@@ -52,6 +61,13 @@ where
     phase_stack.last().unwrap().serialize(ser)
 }
 
+fn serialize_map<S>(map: &GameMap, ser:S) -> Result<S::Ok, S::Error>
+where S: Serializer {
+    SerialMap::from(map.clone()).serialize(ser)
+}
+
+
+
 // Impl
 impl GameState {
     pub fn init_state() -> GameState {
@@ -68,6 +84,7 @@ impl GameState {
                 Crew::new("Laurant Lapointe", 1, 1, 1, 0, 1),
                 Crew::new("Marco Reyes", 0, 0, 1, 1, 0),
             ],
+            map: GameMap {ship_area: 1, map_data: MapData::default()},
             room: ShipRoom::None,
             resources: Resources::default(),
             ability_deck: Deck::new(ability_card_deck()),
@@ -195,6 +212,12 @@ impl GameState {
         gs.message_queue.pop();
 
         // We don't want it to fail even if there is no message
+        Ok(gs)
+    }
+
+    fn move_ship(self, to_area: u32) -> Update {
+        let mut gs = self.clone();
+        gs.map.ship_area = to_area;
         Ok(gs)
     }
 }

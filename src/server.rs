@@ -182,7 +182,7 @@ pub fn run_server() {
                     Ok(OwnedMessage::Close(_)) => {
                         println!("closing");
                         // Comment this line to prevent restart on reload
-                        state.reset();
+                        // state.reset();
                         break;
                     }
                     _ => {}

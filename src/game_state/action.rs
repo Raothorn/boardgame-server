@@ -14,6 +14,8 @@ mod resolve_challenge_action;
 mod select_discard_for_galley_action;
 mod select_event_option_action;
 mod take_ship_action;
+mod select_main_action;
+mod travel_action;
 
 #[typetag::serde(tag = "actionType", content = "actionData")]
 pub trait Action: fmt::Display {
