@@ -16,7 +16,7 @@ pub struct SelectMainAction {
 
 #[typetag::serde(name = "selectMainAction")]
 impl Action for SelectMainAction {
-    fn execute(&self, state: &GameState) -> Update {
+    fn execute(&self, state: &GameState) -> Update<GameState> {
         // TODO  increase count here, not in travel_action
         if let Gp::MainActionPhase(None, action_ct) = state.phase() {
             let phase = if action_ct < 2 {

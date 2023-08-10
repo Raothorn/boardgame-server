@@ -17,7 +17,7 @@ pub struct TravelAction {
 
 #[typetag::serde(name = "travelAction")]
 impl Action for TravelAction {
-    fn execute(&self, state: &GameState) -> Update {
+    fn execute(&self, state: &GameState) -> Update<GameState> {
         if let Gp::MainActionPhase(Some(Mas::Travel), action_ct) =
             state.phase()
         {

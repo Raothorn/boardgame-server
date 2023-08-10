@@ -15,7 +15,7 @@ pub struct ChooseTokenForDeckAction {
 
 #[typetag::serde(name="chooseTokenForDeckAction")]
 impl Action for ChooseTokenForDeckAction {
-    fn execute(&self, state: &GameState) -> Update {
+    fn execute(&self, state: &GameState) -> Update<GameState> {
         let t: Result<(SearchToken, Vec<SearchToken>), String> =
             if let GamePhase::ShipActionPhase(Some(
                 ShipActionSubphase::DeckAction {

@@ -16,7 +16,7 @@ pub struct TakeShipAction {
 }
 
 impl TakeShipAction {
-    fn bridge_action(&self, state: &GameState) -> Update {
+    fn bridge_action(&self, state: &GameState) -> Update<GameState> {
         Ok(state.clone())
             .and_then(|g| g.give_command_tokens(self.player_ix, 3))
             .and_then(|g| g.draw_cards(self.player_ix, 1))
@@ -27,7 +27,7 @@ impl TakeShipAction {
             .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
     }
 
-    fn deck_action(&self, state: &GameState) -> Update {
+    fn deck_action(&self, state: &GameState) -> Update<GameState> {
         let phase = GamePhase::ShipActionPhase(Some(
             ShipActionSubphase::DeckAction {
                 search_tokens_drawn: Vec::new(),
@@ -41,7 +41,7 @@ impl TakeShipAction {
             .and_then(|g| g.set_phase(phase))
     }
 
-    fn galley_action(&self, state: &GameState) -> Update {
+    fn galley_action(&self, state: &GameState) -> Update<GameState> {
         let phase = GamePhase::ShipActionPhase(Some(
             ShipActionSubphase::GalleyAction
         ));
@@ -56,7 +56,7 @@ impl TakeShipAction {
 
 #[typetag::serde(name="takeShipAction")]
 impl Action for TakeShipAction {
-    fn execute(&self, state: &GameState) -> Update {
+    fn execute(&self, state: &GameState) -> Update<GameState> {
         if let GamePhase::ShipActionPhase(None) = &state.phase() {
             if state.room == self.room {
                 Err("You cannot visit the same room twice".to_owned())

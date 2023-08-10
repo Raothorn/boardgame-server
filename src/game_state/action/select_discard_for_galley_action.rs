@@ -15,7 +15,7 @@ pub struct SelectDiscardForGalleyAction {
     player_ix: usize,
 }
 
-fn validate(state: &GameState) -> Update {
+fn validate(state: &GameState) -> Update<GameState> {
     if let GamePhase::ShipActionPhase(Some(
         ShipActionSubphase::GalleyAction,
     )) = &state.phase()
@@ -26,9 +26,9 @@ fn validate(state: &GameState) -> Update {
     }
 }
 
-#[typetag::serde(name="selectDiscardForGalleyAction")]
+#[typetag::serde(name = "selectDiscardForGalleyAction")]
 impl Action for SelectDiscardForGalleyAction {
-    fn execute(&self, state: &GameState) -> Update {
+    fn execute(&self, state: &GameState) -> Update<GameState> {
         let gs = Ok(state.clone())
             .and_then(|g| validate(&g))
             .and_then(|g| g.set_phase(GamePhase::EventPhase(None)));
@@ -39,10 +39,8 @@ impl Action for SelectDiscardForGalleyAction {
             gs.and_then(|g| {
                 g.discard_card(self.player_ix, self.discard_ix)
             })
-            .map(|g| {
-                let mut g = g.clone();
-                g.crew[self.crew_ix].change_fatigue(-1);
-                g
+            .and_then(|g| {
+                g.update_crew(self.crew_ix, |c| c.change_fatigue(-1))
             })
         }
     }
@@ -60,7 +58,6 @@ impl Display for SelectDiscardForGalleyAction {
         )
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -83,7 +80,7 @@ mod test {
             decline: false,
             discard_ix: 0,
             crew_ix: 0,
-            player_ix: 0, 
+            player_ix: 0,
         };
 
         let result = action.execute(&gs);
@@ -95,17 +92,17 @@ mod test {
     }
 
     #[test]
-    fn test_err_if_index_out_of_range()  {
+    fn test_err_if_index_out_of_range() {
         let gs = GameState::init_state()
             .set_phase(Sa(Some(Sas::GalleyAction)))
             .unwrap();
-        
+
         assert!(gs.players[0].hand.len() < 1000);
         let action = SelectDiscardForGalleyAction {
             decline: false,
             discard_ix: 1000,
             crew_ix: 0,
-            player_ix: 0, 
+            player_ix: 0,
         };
 
         let result = action.execute(&gs);

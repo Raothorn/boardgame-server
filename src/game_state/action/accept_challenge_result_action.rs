@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::game_state::game_phase::GamePhase;
+use crate::game_state::{game_phase::GamePhase, GameState};
 
 use super::Action;
 
@@ -14,7 +14,7 @@ pub struct AcceptChallengeResultAction {
 
 #[typetag::serde(name="acceptChallengeResultAction")]
 impl Action for AcceptChallengeResultAction {
-    fn execute(&self, state: &crate::game_state::GameState) -> crate::game_state::Update {
+    fn execute(&self, state: &crate::game_state::GameState) -> crate::game_state::Update<GameState> {
         
         if let GamePhase::ChallengePhase {
             challenge: _,

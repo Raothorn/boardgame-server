@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use super::AbilityCard;
+use super::{AbilityCard, Update};
 
 #[derive(Default, Serialize, Clone)]
 pub struct Player {
@@ -9,8 +9,10 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn add_card(&mut self, card: AbilityCard) {
-        self.hand.push(card);
+    pub fn add_card(&self, card: AbilityCard) -> Update<Self> {
+        let mut player = self.clone();
+        player.hand.push(card);
+        Ok(player)
     }
 
     pub fn discard_card(

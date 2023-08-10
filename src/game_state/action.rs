@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use super::{GameState, Update};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value};
+use serde_json::{Value, json};
 
 mod accept_challenge_result_action;
 mod accept_message_action;
@@ -16,10 +16,12 @@ mod select_event_option_action;
 mod take_ship_action;
 mod select_main_action;
 mod travel_action;
+mod equip_ability_card_action;
+mod select_crew_member_action;
 
 #[typetag::serde(tag = "actionType", content = "actionData")]
 pub trait Action: fmt::Display {
-    fn execute(&self, state: &GameState) -> Update {
+    fn execute(&self, state: &GameState) -> Update<GameState> {
         Ok(state.clone())
     }
 }
@@ -36,14 +38,15 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action>{
     }
 }
 
+
 // BASIC ACTIONS
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 struct NoAction;
 
 #[typetag::serde(name = "noAction")]
 impl Action for NoAction {
-    fn execute(&self, gs: &GameState) -> Update {
+    fn execute(&self, gs: &GameState) -> Update<GameState> {
         Ok(gs.to_owned())
     }
 }

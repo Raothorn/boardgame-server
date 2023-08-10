@@ -17,7 +17,7 @@ impl Action for AcceptMessageAction {
     fn execute(
         &self,
         state: &GameState,
-    ) -> Update {
+    ) -> Update<GameState> {
         Ok(state.clone()).and_then(|g| g.dequeue_message())
     }
 }

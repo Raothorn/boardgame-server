@@ -12,7 +12,7 @@ pub struct SelectEventOptionAction {
 
 #[typetag::serde(name="selectEventOptionAction")]
 impl Action for SelectEventOptionAction {
-    fn execute(&self, state: &GameState) -> Update {
+    fn execute(&self, state: &GameState) -> Update<GameState> {
         let mut gs = state.clone();
 
         if let GamePhase::EventPhase(Some(ref card)) = gs.phase() {

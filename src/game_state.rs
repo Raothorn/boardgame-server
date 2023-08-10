@@ -12,8 +12,10 @@ pub mod player;
 pub mod skill;
 
 use self::{
-    ability_card_deck::ability_card_deck, event_deck::event_deck,
-    map::{GameMap, MapData}, map::SerialMap
+    ability_card_deck::ability_card_deck,
+    event_deck::event_deck,
+    map::SerialMap,
+    map::{GameMap, MapData},
 };
 use ability_card_deck::AbilityCard;
 use challenge::Challenge;
@@ -61,12 +63,12 @@ where
     phase_stack.last().unwrap().serialize(ser)
 }
 
-fn serialize_map<S>(map: &GameMap, ser:S) -> Result<S::Ok, S::Error>
-where S: Serializer {
+fn serialize_map<S>(map: &GameMap, ser: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
     SerialMap::from(map.clone()).serialize(ser)
 }
-
-
 
 // Impl
 impl GameState {
@@ -84,7 +86,10 @@ impl GameState {
                 Crew::new("Laurant Lapointe", 1, 1, 1, 0, 1),
                 Crew::new("Marco Reyes", 0, 0, 1, 1, 0),
             ],
-            map: GameMap {ship_area: 1, map_data: MapData::default()},
+            map: GameMap {
+                ship_area: 1,
+                map_data: MapData::default(),
+            },
             room: ShipRoom::None,
             resources: Resources::default(),
             ability_deck: Deck::new(ability_card_deck()),
@@ -101,7 +106,7 @@ impl GameState {
     }
 
     // TODO doesn't need to be a result
-    fn set_phase(&self, new_phase: GamePhase) -> Update {
+    fn set_phase(&self, new_phase: GamePhase) -> Update<GameState> {
         let mut gs = self.clone();
         gs.phase_stack.pop();
         gs.phase_stack.push(new_phase);
@@ -114,14 +119,14 @@ impl GameState {
         gs
     }
 
-    fn pop_phase(&self) -> Update {
+    fn pop_phase(&self) -> Update<GameState> {
         let mut gs = self.clone();
         gs.phase_stack.pop();
 
         Ok(gs)
     }
 
-    fn challenge(&self, challenge: Challenge) -> Update {
+    fn challenge(&self, challenge: Challenge) -> Update<GameState> {
         Ok(self.clone()).map(|g| {
             g.push_phase(GamePhase::ChallengePhase {
                 challenge,
@@ -134,7 +139,7 @@ impl GameState {
         self,
         player_ix: usize,
         amount: u32,
-    ) -> Update {
+    ) -> Update<GameState> {
         let mut gs = self.clone();
         if let Some(player) = gs.players.get_mut(player_ix) {
             player.command_tokens += amount;
@@ -148,32 +153,53 @@ impl GameState {
         }
     }
 
-    fn apply_search_tokens(self, _token: &SearchToken) -> Update {
+    fn apply_search_tokens(
+        self,
+        _token: &SearchToken,
+    ) -> Update<GameState> {
         let mut gs = self.clone();
         gs.resources.meat += 1;
         Ok(gs)
     }
 
-    fn draw_cards(self, player_ix: usize, amount: u32) -> Update {
+    fn draw_cards(
+        self,
+        player_ix: usize,
+        amount: u32,
+    ) -> Update<GameState> {
+        let gamestate = (0..amount).into_iter().fold(
+            Ok(self.clone()),
+            |gs, _| {
+                gs.and_then(|g| match g.ability_deck.clone().draw() {
+                    Ok((deck, card)) => g
+                        .update_player(player_ix, |p| {
+                            p.add_card(card.clone())
+                        })
+                        .map(|g| GameState {
+                            ability_deck: deck,
+                            ..g
+                        })
+                        .and_then(|g| {
+                            g.append_message(
+                                ClientMessage::DrewAbilityCard {
+                                    card: card.clone(),
+                                },
+                            )
+                        }),
+                    Err(err) => Err(err),
+                })
+            },
+        );
+        gamestate
+    }
+
+    fn append_message(self, msg: ClientMessage) -> Update<GameState> {
         let mut gs = self.clone();
-
-        let mut messages = Vec::new();
-        if let Some(player) = gs.players.get_mut(player_ix) {
-            for _ in 0..amount {
-                if let Ok(card) = gs.ability_deck.draw() {
-                    messages.push(ClientMessage::DrewAbilityCard {
-                        card: card.clone(),
-                    });
-                    player.add_card(card);
-                }
-            }
-        }
-
-        gs.message_queue.append(&mut messages);
+        gs.message_queue.push(msg);
         Ok(gs)
     }
 
-    fn set_room(self, room: &ShipRoom) -> Update {
+    fn set_room(self, room: &ShipRoom) -> Update<GameState> {
         let mut gs = self.clone();
         gs.room = room.clone();
         Ok(gs)
@@ -183,7 +209,7 @@ impl GameState {
         self,
         player_ix: usize,
         card_ix: usize,
-    ) -> Update {
+    ) -> Update<GameState> {
         if player_ix >= self.players.len() {
             Err("".to_owned())
         } else {
@@ -201,13 +227,13 @@ impl GameState {
         }
     }
 
-    fn queue_message(self, msg: ClientMessage) -> Update {
+    fn queue_message(self, msg: ClientMessage) -> Update<GameState> {
         let mut gs = self.clone();
         gs.message_queue.push(msg);
         Ok(gs)
     }
 
-    fn dequeue_message(self) -> Update {
+    fn dequeue_message(self) -> Update<GameState> {
         let mut gs = self.clone();
         gs.message_queue.pop();
 
@@ -215,10 +241,64 @@ impl GameState {
         Ok(gs)
     }
 
-    fn move_ship(self, to_area: u32) -> Update {
+    fn update_player(
+        self,
+        player_ix: usize,
+        player_update: impl Fn(Player) -> Update<Player>,
+    ) -> Update<GameState> {
+        if player_ix > self.players.len() {
+            Err("invalid player ix".to_owned())
+        } else {
+            player_update(self.players[player_ix].clone()).map(
+                |player_| {
+                    let mut players = self.players.clone();
+                    players[player_ix] = player_;
+                    GameState { players, ..self }
+                },
+            )
+        }
+    }
+
+    fn update_crew(
+        self,
+        crew_ix: usize,
+        crew_update: impl Fn(Crew) -> Update<Crew>,
+    ) -> Update<GameState> {
+        if crew_ix > self.crew.len() {
+            Err("invalid crew ix".to_owned())
+        } else {
+            crew_update(self.crew[crew_ix].clone()).map(|crew| {
+                let mut all_crew = self.crew.clone();
+                all_crew[crew_ix] = crew;
+                GameState {
+                    crew: all_crew,
+                    ..self
+                }
+            })
+        }
+    }
+
+    fn move_ship(self, to_area: u32) -> Update<GameState> {
         let mut gs = self.clone();
         gs.map.ship_area = to_area;
         Ok(gs)
+    }
+
+    fn equip_ability_card(
+        self,
+        hand_ix: usize,
+        crew_ix: usize,
+    ) -> Update<GameState> {
+        let mut gs = self.clone();
+
+        // TODO validate
+        let card = gs.players[0].hand.remove(hand_ix).clone();
+
+        Ok(gs).and_then(|g| {
+            g.update_crew(crew_ix, |c| {
+                c.equip_ability_card(card.clone())
+            })
+        })
     }
 }
 
@@ -239,7 +319,7 @@ pub enum ShipRoom {
     None,
 }
 
-#[derive(Clone, Serialize, Copy, Default)]
+#[derive(Clone, Serialize, Copy, Default, Debug)]
 pub struct SearchToken(u32);
 
-type Update = Result<GameState, String>;
+type Update<T> = Result<T, String>;

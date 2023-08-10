@@ -16,17 +16,19 @@ pub struct HandleEventPhaseAction {
 
 #[typetag::serde(name="handleEventPhaseAction")]
 impl Action for HandleEventPhaseAction {
-    fn execute(&self, state: &GameState) -> Update {
+    fn execute(&self, state: &GameState) -> Update<GameState> {
         if let GamePhase::EventPhase(None) = state.phase() {
-            let mut gs = state.clone();
+            let gs = state.clone();
 
-            match gs.event_card_deck.draw() {
-                Ok(event_card) => Ok(gs)
+            match gs.event_card_deck.clone().draw() {
+                Ok((deck, event_card)) => Ok(gs)
                     .and_then(|g| {
                         g.set_phase(GamePhase::EventPhase(Some(
                             event_card,
                         )))
-                    }),
+                    })
+                    .map(|g| GameState {event_card_deck: deck, ..g})
+                ,
                 Err(e) => Err(e),
             }
         } else {
