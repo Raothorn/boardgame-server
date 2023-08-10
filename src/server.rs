@@ -48,6 +48,11 @@ struct ServerState {
 }
 
 impl ServerState {
+    fn reset(&self) {
+        let mut manager = self.manager.lock().unwrap();
+        manager.restart();
+    }
+
     fn add_client(&self, addr: &str, client: Sender) {
         let mut clients = self.clients.lock().unwrap();
 
@@ -104,7 +109,7 @@ impl ServerState {
                 self.notify(addr, &err);
             }
             None => {
-                println!("Action executed successfully.");
+                println!("Action {} executed successfully.", action);
 
                 drop(manager);
                 self.broadcast_gamestate();
@@ -176,6 +181,8 @@ pub fn run_server() {
                     }
                     Ok(OwnedMessage::Close(_)) => {
                         println!("closing");
+                        // Comment this line to prevent restart on reload
+                        // state.reset();
                         break;
                     }
                     _ => {}

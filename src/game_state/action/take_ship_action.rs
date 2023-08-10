@@ -1,14 +1,15 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::Action;
+
 use crate::game_state::{
     game_phase::ShipActionSubphase, GamePhase, GameState, ShipRoom,
     Update,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct TakeShipAction {
     room: ShipRoom,
     player_ix: usize,
@@ -27,7 +28,7 @@ impl TakeShipAction {
     }
 
     fn deck_action(&self, state: &GameState) -> Update {
-        let phase = GamePhase::ShipAction(Some(
+        let phase = GamePhase::ShipActionPhase(Some(
             ShipActionSubphase::DeckAction {
                 search_tokens_drawn: Vec::new(),
             },
@@ -38,11 +39,10 @@ impl TakeShipAction {
                 ..g
             })
             .and_then(|g| g.set_phase(phase))
-            .map(|g| g.prompt_str("drawForDeckAction"))
     }
 
     fn galley_action(&self, state: &GameState) -> Update {
-        let phase = GamePhase::ShipAction(Some(
+        let phase = GamePhase::ShipActionPhase(Some(
             ShipActionSubphase::GalleyAction
         ));
 
@@ -51,13 +51,13 @@ impl TakeShipAction {
             .and_then(|g| g.draw_cards(self.player_ix, 2))
             .and_then(|g| g.set_room(&ShipRoom::Galley))
             .and_then(|g| g.set_phase(phase))
-            .map(|g| g.prompt_str("selectDiscardForGalleyAction"))
     }
 }
 
+#[typetag::serde(name="takeShipAction")]
 impl Action for TakeShipAction {
     fn execute(&self, state: &GameState) -> Update {
-        if let GamePhase::ShipAction(None) = &state.phase() {
+        if let GamePhase::ShipActionPhase(None) = &state.phase() {
             if state.room == self.room {
                 Err("You cannot visit the same room twice".to_owned())
             } else {
@@ -95,7 +95,7 @@ mod test {
     use crate::game_state::challenge::Challenge;
     use GamePhase::ChallengePhase as Cp;
     use GamePhase::EventPhase as Ep;
-    use GamePhase::ShipAction as Sa;
+    use GamePhase::ShipActionPhase as Sa;
     use ShipActionSubphase as Sas;
 
     #[test]
@@ -117,7 +117,7 @@ mod test {
 
     #[test_case(Sa(Some(Sas::default())); "Current in ship action")]
     #[test_case(Ep(None); "In event phase")]
-    #[test_case(Cp(Challenge::default()); "In challenge phase")]
+    #[test_case(Cp {challenge: Challenge::default(), added: None}; "In challenge phase")]
     fn test_takeshipaction_err_if_wrong_phase(phase: GamePhase) {
         let gs = GameState::init_state().set_phase(phase).unwrap();
 

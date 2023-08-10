@@ -1,14 +1,13 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 
 use super::Action;
 use crate::game_state::{
     game_phase::ShipActionSubphase, GamePhase, GameState, Update,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct SelectDiscardForGalleyAction {
     decline: bool,
     discard_ix: usize,
@@ -17,7 +16,7 @@ pub struct SelectDiscardForGalleyAction {
 }
 
 fn validate(state: &GameState) -> Update {
-    if let GamePhase::ShipAction(Some(
+    if let GamePhase::ShipActionPhase(Some(
         ShipActionSubphase::GalleyAction,
     )) = &state.phase()
     {
@@ -27,12 +26,12 @@ fn validate(state: &GameState) -> Update {
     }
 }
 
+#[typetag::serde(name="selectDiscardForGalleyAction")]
 impl Action for SelectDiscardForGalleyAction {
     fn execute(&self, state: &GameState) -> Update {
         let gs = Ok(state.clone())
             .and_then(|g| validate(&g))
-            .and_then(|g| g.set_phase(GamePhase::EventPhase(None)))
-            .map(|g| g.prompt(&Value::Null));
+            .and_then(|g| g.set_phase(GamePhase::EventPhase(None)));
 
         if self.decline {
             gs
@@ -40,7 +39,11 @@ impl Action for SelectDiscardForGalleyAction {
             gs.and_then(|g| {
                 g.discard_card(self.player_ix, self.discard_ix)
             })
-            .and_then(|g| g.reduce_fatigue(self.crew_ix))
+            .map(|g| {
+                let mut g = g.clone();
+                g.crew[self.crew_ix].change_fatigue(-1);
+                g
+            })
         }
     }
 }
@@ -65,7 +68,7 @@ mod test {
 
     use super::*;
 
-    use GamePhase::ShipAction as Sa;
+    use GamePhase::ShipActionPhase as Sa;
     use ShipActionSubphase as Sas;
 
     #[test]

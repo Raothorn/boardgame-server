@@ -1,6 +1,7 @@
 use std::fmt;
 
 use serde::Deserialize;
+use serde::Serialize;
 
 use crate::game_state::GamePhase;
 use crate::game_state::Update;
@@ -8,9 +9,12 @@ use crate::game_state::Update;
 use super::Action;
 use super::GameState;
 
-#[derive(Deserialize)]
-pub struct HandleEventPhaseAction {}
+#[derive(Deserialize, Serialize)]
+pub struct HandleEventPhaseAction {
+    player_ix: u32
+}
 
+#[typetag::serde(name="handleEventPhaseAction")]
 impl Action for HandleEventPhaseAction {
     fn execute(&self, state: &GameState) -> Update {
         if let GamePhase::EventPhase(None) = state.phase() {
@@ -18,7 +22,6 @@ impl Action for HandleEventPhaseAction {
 
             match gs.event_card_deck.draw() {
                 Ok(event_card) => Ok(gs)
-                    .map(|g| g.prompt_str("selectEventOption"))
                     .and_then(|g| {
                         g.set_phase(GamePhase::EventPhase(Some(
                             event_card,

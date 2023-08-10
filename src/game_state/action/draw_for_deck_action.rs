@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::game_state::{
     game_phase::ShipActionSubphase, GamePhase, GameState, Update,
@@ -6,17 +6,18 @@ use crate::game_state::{
 
 use super::Action;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct DrawForDeckAction {
     #[allow(dead_code)]
     player_ix: usize,
 }
 
+#[typetag::serde(name="drawForDeckAction")]
 impl Action for DrawForDeckAction {
     fn execute(&self, state: &GameState) -> Update {
         let mut gs = state.clone();
         match gs.phase() {
-            GamePhase::ShipAction(Some(
+            GamePhase::ShipActionPhase(Some(
                 ShipActionSubphase::DeckAction {
                     ref search_tokens_drawn,
                 },
@@ -27,7 +28,7 @@ impl Action for DrawForDeckAction {
                             let mut search_tokens_drawn =
                                 search_tokens_drawn.clone();
                             search_tokens_drawn.push(token);
-                            let phase = GamePhase::ShipAction(Some(
+                            let phase = GamePhase::ShipActionPhase(Some(
                                 ShipActionSubphase::DeckAction {
                                     search_tokens_drawn,
                                 },

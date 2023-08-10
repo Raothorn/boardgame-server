@@ -8,23 +8,46 @@ use std::collections::HashMap;
 #[derive(Serialize, Clone)]
 pub struct Crew {
     pub name: String,
-    pub fatigue: u32,
+    pub fatigue: u8,
+    pub damage: u8,
     #[serde_as(as = "HashMap<DisplayFromStr,_>")]
     pub skills: HashMap<Skill, u32>,
 }
 
 impl Crew {
-    pub fn new(name: &str, savvy: u32, craft: u32) -> Self {
+    pub fn new(
+        name: &str,
+        savvy: u32,
+        craft: u32,
+        strength: u32,
+        wits: u32,
+        perception: u32,
+    ) -> Self {
         let mut skills = HashMap::new();
-        skills.insert(Skill::Savvy, savvy);
-        skills.insert(Skill::Craft, craft);
 
-        Crew { name: name.to_owned(), fatigue:0, skills }
+        skills.insert(Skill::Craft, craft);
+        skills.insert(Skill::Savvy, savvy);
+        skills.insert(Skill::Strength, strength);
+        skills.insert(Skill::Perception, perception);
+        skills.insert(Skill::Wits, wits);
+
+        Crew {
+            name: name.to_owned(),
+            fatigue: 0,
+            damage: 0,
+            skills,
+        }
     }
 
-    pub fn reduce_fatigue(&mut self) {
-        if self.fatigue > 0 {
-            self.fatigue -= 1;
+    pub fn change_fatigue(&mut self, amount: i32) {
+        let mut fatigue = i32::from(self.fatigue) + amount;
+        // Clamp fatigue to [0, 2]
+        if fatigue > 2 {
+            fatigue = 2;
+        } else if fatigue < 0 {
+            fatigue = 0;
         }
+
+        self.fatigue = u8::try_from(fatigue).unwrap_or(0);
     }
 }

@@ -4,6 +4,9 @@ use serde::Serialize;
 pub enum Skill {
     Savvy,
     Craft,
+    Perception,
+    Strength,
+    Wits
 }
 
 impl std::fmt::Display for Skill {

@@ -15,7 +15,7 @@ impl<T: Clone> Deck<T> {
     }
 
     pub fn draw(&mut self) -> Result<T, String> {
-        if self.items.len() == 0 {
+        if self.items.is_empty() {
             self.items.append(&mut self.discard);
             println!("none left");
         }

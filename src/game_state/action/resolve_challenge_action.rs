@@ -1,48 +1,69 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 
 use super::Action;
 use crate::game_state::{
     challenge::Challenge, GamePhase, GameState, Update,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ResolveChallengeAction {
     selected_crew: Vec<usize>,
 }
 
 impl ResolveChallengeAction {
-    fn sufficient_skill(
+    fn crew_skill(
         &self,
         state: &GameState,
         challenge: &Challenge,
-    ) -> bool {
+    ) -> u32 {
         let mut total = 0;
         for crew_ix in self.selected_crew.iter() {
             let crew = &state.crew[*crew_ix];
             total += crew.skills[&challenge.skill];
         }
-        return total >= challenge.amount;
+        total
     }
 }
 
+#[typetag::serde(name="resolveChallengeAction")]
 impl Action for ResolveChallengeAction {
     fn execute(&self, state: &GameState) -> Update {
-        // Validate
-        if let GamePhase::ChallengePhase(challenge) = state.phase() {
-            if self.sufficient_skill(state, &challenge) {
-                Ok(state.clone())
-                // TODO fatigue crew
+        let gs = state.clone();
+
+        if let GamePhase::ChallengePhase {
+            challenge,
+            added: None,
+        } = state.phase()
+        {
+            let added = 4;
+            let phase = GamePhase::ChallengePhase {
+                challenge: challenge.clone(),
+                added: Some(added),
+            };
+
+            if self.crew_skill(state, &challenge) + added
+                >= challenge.amount
+            {
+                (challenge.if_succeed)(&gs)
             } else {
-                Err("Insufficient skill".to_owned())
+                (challenge.if_fail)(&gs)
             }
+
+            .map(|g| {
+                let mut gs = g.clone();
+                for crew_ix in self.selected_crew.iter() {
+                    gs.crew[*crew_ix].change_fatigue(1)
+                }
+                gs
+            })
+
+            .and_then(|g| g.set_phase(phase))
+
         } else {
             Err("Wrong phase".to_owned())
         }
-        .and_then(|g| g.pop_phase())
-        .map(|g| g.prompt(&Value::Null))
     }
 }
 
