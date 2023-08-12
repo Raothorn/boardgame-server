@@ -47,18 +47,21 @@ pub struct SelectAbilityCardToEquipAction {
 #[typetag::serde(name = "selectAbilityCardToEquipAction")]
 impl Action for SelectAbilityCardToEquipAction {
     fn execute(&self, state: &GameState) -> Update<GameState> {
-        Ok(state.clone()).map(|g| {
-            let action = EquipAbilityCardAction {
-                hand_ix: self.hand_ix,
-                player_ix: self.player_ix,
-            };
-            let action_ser = json! ({
-                "actionType": "equipAbilityCardAction",
-                "actionData": action,
-            }).to_string();
-            println!("ACTION: {}", action_ser);
-            g.push_phase(GamePhase::SelectCrewMemberPhase(None, action_ser))
-        })
+        Ok(state.clone())
+            .and_then(|g| {
+                let action = EquipAbilityCardAction {
+                    hand_ix: self.hand_ix,
+                    player_ix: self.player_ix,
+                };
+                let action_ser = json! ({
+                    "actionType": "equipAbilityCardAction",
+                    "actionData": action,
+                }).to_string();
+
+                g.push_phase(GamePhase::SelectCrewMemberPhase(
+                    None, action_ser,
+                ))
+            })
     }
 }
 

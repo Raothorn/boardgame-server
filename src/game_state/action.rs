@@ -18,6 +18,7 @@ mod select_main_action;
 mod travel_action;
 mod equip_ability_card_action;
 mod select_crew_member_action;
+mod explore_action;
 
 #[typetag::serde(tag = "actionType", content = "actionData")]
 pub trait Action: fmt::Display {

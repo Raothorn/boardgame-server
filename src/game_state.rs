@@ -1,21 +1,22 @@
 use serde::{Deserialize, Serialize, Serializer};
-pub mod ability_card_deck;
 pub mod action;
-pub mod challenge;
 pub mod client_message;
-pub mod crew;
-pub mod deck;
-pub mod event_deck;
-pub mod game_phase;
-pub mod map;
-pub mod player;
-pub mod skill;
+mod ability_card_deck;
+mod challenge;
+mod crew;
+mod deck;
+mod event_deck;
+mod game_phase;
+mod map;
+mod player;
+mod skill;
+mod storybook;
 
 use self::{
     ability_card_deck::ability_card_deck,
     event_deck::event_deck,
     map::SerialMap,
-    map::{GameMap, MapData},
+    map::{GameMap, MapData}, storybook::Storybook,
 };
 use ability_card_deck::AbilityCard;
 use challenge::Challenge;
@@ -89,6 +90,7 @@ impl GameState {
             map: GameMap {
                 ship_area: 1,
                 map_data: MapData::default(),
+                storybook: Storybook::default()
             },
             room: ShipRoom::None,
             resources: Resources::default(),
@@ -113,10 +115,10 @@ impl GameState {
         Ok(gs)
     }
 
-    fn push_phase(&self, phase: GamePhase) -> GameState {
+    fn push_phase(&self, phase: GamePhase) -> Update<GameState> {
         let mut gs = self.clone();
         gs.phase_stack.push(phase);
-        gs
+        Ok(gs)
     }
 
     fn pop_phase(&self) -> Update<GameState> {
@@ -127,7 +129,7 @@ impl GameState {
     }
 
     fn challenge(&self, challenge: Challenge) -> Update<GameState> {
-        Ok(self.clone()).map(|g| {
+        Ok(self.clone()).and_then(|g| {
             g.push_phase(GamePhase::ChallengePhase {
                 challenge,
                 added: None,
@@ -151,6 +153,10 @@ impl GameState {
         } else {
             Err("Player does not exist".to_owned())
         }
+    }
+
+    fn keywords(&self) -> Vec<String> {
+        Vec::new()
     }
 
     fn apply_search_tokens(

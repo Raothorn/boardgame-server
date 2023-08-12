@@ -10,17 +10,16 @@ use super::Action;
 
 #[derive(Serialize, Deserialize)]
 pub struct SelectMainAction {
-    //TODO action type
+    main_action: Mas,
     player_ix: u32,
 }
 
 #[typetag::serde(name = "selectMainAction")]
 impl Action for SelectMainAction {
     fn execute(&self, state: &GameState) -> Update<GameState> {
-        // TODO  increase count here, not in travel_action
         if let Gp::MainActionPhase(None, action_ct) = state.phase() {
             let phase = if action_ct < 2 {
-                Gp::MainActionPhase(Some(Mas::Travel), action_ct + 1)
+                Gp::MainActionPhase(Some(self.main_action), action_ct + 1)
             } else {
                 Gp::ShipActionPhase(None)
             };

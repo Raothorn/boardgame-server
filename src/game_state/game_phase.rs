@@ -1,8 +1,7 @@
-use serde::Serialize;
-use serde_json::Value;
-
+use serde::{Deserialize, Serialize};
 use super::{
-    challenge::Challenge, event_deck::EventCard, SearchToken, Update, crew::Crew, GameState, action::Action,
+    challenge::Challenge, storybook::Story,
+    event_deck::EventCard, SearchToken, 
 };
 
 #[derive(Clone, Serialize, Debug)]
@@ -12,9 +11,10 @@ pub enum GamePhase {
     MainActionPhase(Option<MainActionSubphase>, u32),
     ChallengePhase {
         challenge: Challenge,
-        added: Option<u32>
+        added: Option<u32>,
     },
-    SelectCrewMemberPhase(Option<usize>, String)
+    SelectCrewMemberPhase(Option<usize>, String),
+    ExplorePhase(Story)
 }
 
 #[derive(Clone, Serialize, Default, Debug)]
@@ -26,8 +26,9 @@ pub enum ShipActionSubphase {
     },
 }
 
-#[derive(Clone, Serialize, Default, Debug)]
+#[derive(Clone, Serialize, Default, Debug, Deserialize, Copy)]
 pub enum MainActionSubphase {
     #[default]
     Travel,
+    Explore,
 }
