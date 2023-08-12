@@ -14,15 +14,17 @@ impl<T: Clone> Deck<T> {
         }
     }
 
-    pub fn draw(&mut self) -> Result<T, String> {
-        if self.items.is_empty() {
-            self.items.append(&mut self.discard);
+    pub fn draw(self) -> Result<(Self, T), String> {
+        let mut deck = self.clone();
+        if deck.items.is_empty() {
+            deck.items.append(&mut deck.discard);
             println!("none left");
         }
 
-        self.items
+        deck.items
             .pop()
             .ok_or("No items left in the deck".to_string())
+            .map(|item| (deck, item))
     }
 
     pub fn add_to_discard(&mut self, item: &T) {

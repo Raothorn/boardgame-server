@@ -12,10 +12,10 @@ pub struct DrawForDeckAction {
     player_ix: usize,
 }
 
-#[typetag::serde(name="drawForDeckAction")]
+#[typetag::serde(name = "drawForDeckAction")]
 impl Action for DrawForDeckAction {
-    fn execute(&self, state: &GameState) -> Update {
-        let mut gs = state.clone();
+    fn execute(&self, state: &GameState) -> Update<GameState> {
+        let gs = state.clone();
         match gs.phase() {
             GamePhase::ShipActionPhase(Some(
                 ShipActionSubphase::DeckAction {
@@ -23,17 +23,24 @@ impl Action for DrawForDeckAction {
                 },
             )) => {
                 if search_tokens_drawn.len() < 3 {
-                    match gs.search_token_deck.draw() {
-                        Ok(token) => {
+                    match gs.search_token_deck.clone().draw() {
+                        Ok((deck, token)) => {
+                            // todo refactormut
                             let mut search_tokens_drawn =
                                 search_tokens_drawn.clone();
                             search_tokens_drawn.push(token);
-                            let phase = GamePhase::ShipActionPhase(Some(
-                                ShipActionSubphase::DeckAction {
-                                    search_tokens_drawn,
-                                },
-                            ));
-                            Ok(gs).and_then(|g| g.set_phase(phase))
+                            let phase =
+                                GamePhase::ShipActionPhase(Some(
+                                    ShipActionSubphase::DeckAction {
+                                        search_tokens_drawn,
+                                    },
+                                ));
+                            Ok(gs)
+                                .map(|g| GameState {
+                                    search_token_deck: deck,
+                                    ..g
+                                })
+                                .and_then(|g| g.set_phase(phase))
                         }
                         Err(err) => Err(err),
                     }

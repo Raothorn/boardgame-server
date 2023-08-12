@@ -3,12 +3,18 @@ use serde::Serialize;
 #[derive(Clone, Serialize, Default)]
 pub struct AbilityCard {
     name: String,
-    deck_ix: u32
+    deck_ix: u32,
+
+    modifiers: Vec<Modifier>,
 }
 
 impl AbilityCard {
     fn new(name: &str, deck_ix: u32) -> Self {
-        AbilityCard { name: name.to_owned(), deck_ix }
+        AbilityCard {
+            name: name.to_owned(),
+            deck_ix,
+            modifiers: Vec::new(),
+        }
     }
 }
 
@@ -19,3 +25,5 @@ pub fn ability_card_deck() -> Vec<AbilityCard> {
 
     vec![card1, card2, card3]
 }
+
+type Modifier = ();
