@@ -1,18 +1,20 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use serde_with::DisplayFromStr;
 
-use super::{ability_card_deck::AbilityCard, skill::Skill};
-use std::collections::HashMap;
+use crate::utils;
+
+use super::{ability_card_deck::AbilityCard, skill::Skill, Update};
+use std::{collections::{HashMap, HashSet}, fmt::Display};
 
 #[serde_with::serde_as]
 #[derive(Serialize, Clone)]
 pub struct Crew {
     pub name: String,
-    pub fatigue: u8,
-    pub damage: u8,
+    pub fatigue: u32,
+    pub damage: u32,
     #[serde_as(as = "HashMap<DisplayFromStr,_>")]
     pub skills: HashMap<Skill, u32>,
-
+    pub status: HashSet<Status>,
     pub equipped_ability_cards: Vec<AbilityCard>,
 }
 
@@ -38,28 +40,35 @@ impl Crew {
             fatigue: 0,
             damage: 0,
             skills,
+            status: HashSet::new(),
             equipped_ability_cards: Vec::new(),
         }
     }
 
-    pub fn change_fatigue(self, amount: i32) -> Result<Self, String> {
+    pub fn change_fatigue(self, amount: i32) -> Update<Self> {
         let mut crew = self.clone();
-        let mut fatigue = i32::from(self.fatigue) + amount;
-        // Clamp fatigue to [0, 2]
-        if fatigue > 2 {
-            fatigue = 2;
-        } else if fatigue < 0 {
-            fatigue = 0;
-        }
 
-        crew.fatigue = u8::try_from(fatigue).unwrap_or(0);
+        crew.fatigue =
+            utils::change_and_clamp(self.fatigue, amount, (0, 2));
+        Ok(crew)
+    }
+
+    pub fn change_damage(self, amount: i32) -> Update<Self> {
+        let mut crew = self.clone();
+
+        crew.damage = utils::change_and_clamp(
+            self.damage,
+            amount,
+            // TODO change 8 to the max damage of the character
+            (0, 8),
+        );
         Ok(crew)
     }
 
     pub fn equip_ability_card(
         self,
         card: AbilityCard,
-    ) -> Result<Self, String> {
+    ) -> Update<Self> {
         let mut crew = self.clone();
         if crew.equipped_ability_cards.len() >= 2 {
             Err("Ability card limit".to_owned())
@@ -68,4 +77,21 @@ impl Crew {
             Ok(crew)
         }
     }
+
+    pub fn add_status(self, status: Status) -> Update<Self>{
+        if self.status.contains(&status) {
+            Err("You can't have more than one of that status".to_owned())
+        } else {
+            let mut crew = self.clone();
+            crew.status.insert(status);
+            Ok(crew)
+        }
+    }
+} 
+
+#[derive(Clone, Serialize, PartialEq, Eq, Hash, Debug, Deserialize, Copy)]
+pub enum Status {
+    Venom, Frightened, Weakend, Madness, LowMorale 
 }
+
+

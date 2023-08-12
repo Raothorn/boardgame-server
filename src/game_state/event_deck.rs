@@ -1,8 +1,9 @@
+use crate::game_state::{
+    challenge::Challenge, skill::Skill, Resource,
+};
+
+use super::effect::*;
 use serde::Serialize;
-
-use crate::game_state::{challenge::Challenge, Skill};
-
-use super::{GameState, Update};
 
 #[derive(Clone, Serialize, Debug)]
 pub struct EventCard {
@@ -16,7 +17,7 @@ pub struct EventCard {
 pub struct EventOption {
     pub text: String,
     #[serde(skip_serializing)]
-    pub handle_option: fn(&GameState) -> Update<GameState>,
+    pub effects: Vec<Effect>,
 }
 
 pub fn event_deck() -> Vec<EventCard> {
@@ -28,27 +29,20 @@ pub fn event_deck() -> Vec<EventCard> {
                 EventOption {
                     text: "Help repair the airplane (CRAFT 8)"
                         .to_owned(),
-                    handle_option: (|g| {
-                        g.challenge(Challenge {
-                            skill: Skill::Craft,
-                            amount: 8,
-                            if_fail: |gs| {
-                                Ok(gs.clone())
-                                    .and_then(|g| take_damage(g, 5))
-                            },
-                            if_succeed: |gs| {
-                                Ok(gs.clone())
-                                    .and_then(gain_coin)
-                                    .and_then(gain_meat)
-                            },
-                        })
-                    }),
+                    effects: vec![Effect::TryChallenge(Challenge {
+                        skill: Skill::Craft,
+                        amount: 8,
+                        if_fail: vec![Effect::TakeHealthDamage(5)],
+                        if_succeed: vec![
+                            Effect::GainResource(Resource::Coin, 1),
+                            Effect::GainResource(Resource::Meat, 1),
+                        ],
+                    })],
                 },
                 EventOption {
                     text: "Ignore the plane".to_owned(),
-                    handle_option: |g| {
-                        Ok(g.clone()).and_then(|g| take_damage(g, 1))
-                    },
+                    // Todo
+                    effects: vec![Effect::TakeHealthDamage(1)],
                 },
             ],
         },
@@ -57,25 +51,4 @@ pub fn event_deck() -> Vec<EventCard> {
         //     options: todo!(),
         // },
     ]
-}
-
-fn gain_coin(state: GameState) -> Update<GameState> {
-    let mut gs = state.clone();
-    gs.resources.coins += 1;
-
-    Ok(gs)
-}
-
-fn gain_meat(state: GameState) -> Update<GameState> {
-    let mut gs = state.clone();
-    gs.resources.meat += 1;
-
-    Ok(gs)
-}
-
-fn take_damage(state: GameState, damage: u8) -> Update<GameState> {
-    // TODO: allow user to distribute damage
-    let mut gs = state.clone();
-    gs.crew[0].damage += damage;
-    Ok(gs)
 }

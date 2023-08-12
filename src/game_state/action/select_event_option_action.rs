@@ -10,7 +10,7 @@ pub struct SelectEventOptionAction {
     player_ix: usize,
 }
 
-#[typetag::serde(name="selectEventOptionAction")]
+#[typetag::serde(name = "selectEventOptionAction")]
 impl Action for SelectEventOptionAction {
     fn execute(&self, state: &GameState) -> Update<GameState> {
         let mut gs = state.clone();
@@ -22,9 +22,18 @@ impl Action for SelectEventOptionAction {
                     gs.event_card_deck.add_to_discard(card);
                     Ok(gs)
                         .and_then(|g| {
-                            g.set_phase(GamePhase::MainActionPhase(None, 0))
+                            g.set_phase(GamePhase::MainActionPhase(
+                                None, 0,
+                            ))
                         })
-                        .and_then(|g| (option.handle_option)(&g))
+                        .and_then(|g| {
+                            option.effects.iter().fold(
+                                Ok(g),
+                                |g, eff| {
+                                    g.and_then(|g| eff.resolve(g))
+                                },
+                            )
+                        })
                 }
                 None => Err("option index not valid".to_owned()),
             }

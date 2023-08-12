@@ -3,10 +3,8 @@ use std::fmt::Display;
 
 use super::{GameState, Update};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::Value;
 
-mod accept_challenge_result_action;
-mod accept_message_action;
 mod choose_token_for_deck_action;
 mod draw_for_deck_action;
 mod handle_event_phase_action;
@@ -19,6 +17,8 @@ mod travel_action;
 mod equip_ability_card_action;
 mod select_crew_member_action;
 mod explore_action;
+mod select_story_option_action;
+mod confirm_actions;
 
 #[typetag::serde(tag = "actionType", content = "actionData")]
 pub trait Action: fmt::Display {
@@ -43,7 +43,7 @@ pub fn get_action(action_msg_str: &str) -> Box<dyn Action>{
 // BASIC ACTIONS
 
 #[derive(Deserialize, Serialize, Clone)]
-struct NoAction;
+pub struct NoAction;
 
 #[typetag::serde(name = "noAction")]
 impl Action for NoAction {

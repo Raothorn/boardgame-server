@@ -1,8 +1,8 @@
 use std::fmt::Display;
-
 use serde::{Deserialize, Serialize};
 
 use super::Action;
+
 use crate::game_state::{
     game_phase::ShipActionSubphase, GamePhase, GameState, Update,
 };
@@ -74,7 +74,7 @@ mod test {
             .set_phase(Sa(Some(Sas::GalleyAction)))
             .unwrap();
 
-        gs.players[0].add_card(AbilityCard::default());
+        gs.players[0].add_card(AbilityCard::default()).unwrap();
         gs.crew[0].fatigue = 1;
         let action = SelectDiscardForGalleyAction {
             decline: false,

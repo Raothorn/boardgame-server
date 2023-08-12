@@ -16,12 +16,12 @@ pub struct EquipAbilityCardAction {
 #[typetag::serde(name = "equipAbilityCardAction")]
 impl Action for EquipAbilityCardAction {
     fn execute(&self, state: &GameState) -> Update<GameState> {
-        if let GamePhase::SelectCrewMemberPhase(Some(crew_ix), _) =
+        if let GamePhase::SelectCrewMemberPhase{
+            crew_ix: Some(crew_ix),title,callback
+        } =
             state.phase()
         {
-            Ok(state.clone()).and_then(|g| {
-                g.equip_ability_card(self.hand_ix, crew_ix)
-            })
+            state.clone().equip_ability_card(self.hand_ix, crew_ix)
         } else {
             Err("wrong phase".to_owned())
         }
@@ -47,21 +47,23 @@ pub struct SelectAbilityCardToEquipAction {
 #[typetag::serde(name = "selectAbilityCardToEquipAction")]
 impl Action for SelectAbilityCardToEquipAction {
     fn execute(&self, state: &GameState) -> Update<GameState> {
-        Ok(state.clone())
-            .and_then(|g| {
-                let action = EquipAbilityCardAction {
-                    hand_ix: self.hand_ix,
-                    player_ix: self.player_ix,
-                };
-                let action_ser = json! ({
-                    "actionType": "equipAbilityCardAction",
-                    "actionData": action,
-                }).to_string();
-
-                g.push_phase(GamePhase::SelectCrewMemberPhase(
-                    None, action_ser,
-                ))
+        Ok(state.clone()).and_then(|g| {
+            let action = EquipAbilityCardAction {
+                hand_ix: self.hand_ix,
+                player_ix: self.player_ix,
+            };
+            let action_ser = json! ({
+                "actionType": "equipAbilityCardAction",
+                "actionData": action,
             })
+            .to_string();
+
+            g.push_phase(GamePhase::SelectCrewMemberPhase {
+                crew_ix: None,
+                title: "Equip ability card:".to_owned(),
+                callback: action_ser,
+            })
+        })
     }
 }
 

@@ -27,45 +27,41 @@ impl ResolveChallengeAction {
     }
 }
 
-#[typetag::serde(name="resolveChallengeAction")]
+#[typetag::serde(name = "resolveChallengeAction")]
 impl Action for ResolveChallengeAction {
     fn execute(&self, state: &GameState) -> Update<GameState> {
         let gs = state.clone();
 
         if let GamePhase::ChallengePhase {
             challenge,
-            added: None,
+            skill: None
         } = state.phase()
         {
             let added = 4;
             let phase = GamePhase::ChallengePhase {
                 challenge: challenge.clone(),
-                added: Some(added),
+                skill: Some(self.crew_skill(state, &challenge) + added)
             };
 
-            if self.crew_skill(state, &challenge) + added
-                >= challenge.amount
-            {
-                (challenge.if_succeed)(&gs)
-            } else {
-                (challenge.if_fail)(&gs)
-            }
+            state
+                .set_phase(phase)
 
-            .and_then(|g| {
-                let mut gs = g.clone();
+                // Add fatigue
+                .and_then(|g| {
+                    let gs = g.clone();
 
-                let result = self.selected_crew.iter().fold(Ok(gs), |g, crew_ix| {
-                    g.and_then(|g| g.update_crew(*crew_ix, |c| c.change_fatigue(1)))
-                });
-                // for crew_ix in self.selected_crew.iter() {
-                //     gs.crew[*crew_ix].change_fatigue(1)
-                // }
-                // gs
-                result
-            })
-
-            .and_then(|g| g.set_phase(phase))
-
+                    let result = self.selected_crew.iter().fold(
+                        Ok(gs),
+                        |g, crew_ix| {
+                            g.and_then(|g| {
+                                g.update_crew(*crew_ix, |c| {
+                                    c.change_fatigue(1)
+                                })
+                            })
+                        },
+                    );
+                    result
+                })
         } else {
             Err("Wrong phase".to_owned())
         }

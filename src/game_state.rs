@@ -1,10 +1,13 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize, Serializer};
-pub mod action;
-pub mod client_message;
 mod ability_card_deck;
+pub mod action;
 mod challenge;
+pub mod client_message;
 mod crew;
 mod deck;
+pub mod effect;
 mod event_deck;
 mod game_phase;
 mod map;
@@ -16,7 +19,8 @@ use self::{
     ability_card_deck::ability_card_deck,
     event_deck::event_deck,
     map::SerialMap,
-    map::{GameMap, MapData}, storybook::Storybook,
+    map::{GameMap, MapData},
+    storybook::Storybook,
 };
 use ability_card_deck::AbilityCard;
 use challenge::Challenge;
@@ -42,7 +46,7 @@ pub struct GameState {
     map: GameMap,
 
     room: ShipRoom,
-    resources: Resources,
+    resources: HashMap<Resource, u32>,
     message_queue: Vec<ClientMessage>,
 
     #[serde(skip_serializing)]
@@ -90,10 +94,12 @@ impl GameState {
             map: GameMap {
                 ship_area: 1,
                 map_data: MapData::default(),
-                storybook: Storybook::default()
+                storybook: Storybook::default(),
             },
             room: ShipRoom::None,
-            resources: Resources::default(),
+            resources: [(Resource::Coin, 0), (Resource::Meat, 0)]
+                .into_iter()
+                .collect(),
             ability_deck: Deck::new(ability_card_deck()),
             search_token_deck: Deck::new(
                 (1..8).map(SearchToken).collect(),
@@ -123,18 +129,40 @@ impl GameState {
 
     fn pop_phase(&self) -> Update<GameState> {
         let mut gs = self.clone();
-        gs.phase_stack.pop();
 
-        Ok(gs)
+        match gs.phase_stack.pop() {
+            Some(_) => Ok(gs),
+            None => Err("No phase to pop".to_owned()),
+        }
     }
 
     fn challenge(&self, challenge: Challenge) -> Update<GameState> {
         Ok(self.clone()).and_then(|g| {
             g.push_phase(GamePhase::ChallengePhase {
                 challenge,
-                added: None,
+                skill: None,
             })
         })
+    }
+
+    fn gain_resource(
+        self,
+        resource: Resource,
+        amount: i32,
+    ) -> Update<Self> {
+
+        let mut gs = self.clone();
+        let prev_amount: i32 = gs.resources[&resource].try_into().unwrap();
+        if prev_amount + amount >= 0 {
+            gs.resources.insert(
+                resource,
+                (prev_amount + amount).try_into().unwrap(),
+            );
+        } else {
+            gs.resources.insert(resource, 0);
+        }
+
+        Ok(gs)
     }
 
     fn give_command_tokens(
@@ -155,6 +183,9 @@ impl GameState {
         }
     }
 
+
+
+
     fn keywords(&self) -> Vec<String> {
         Vec::new()
     }
@@ -163,9 +194,8 @@ impl GameState {
         self,
         _token: &SearchToken,
     ) -> Update<GameState> {
-        let mut gs = self.clone();
-        gs.resources.meat += 1;
-        Ok(gs)
+        println!("Gaining meat!");
+        self.gain_resource(Resource::Meat, 1)
     }
 
     fn draw_cards(
@@ -308,11 +338,10 @@ impl GameState {
     }
 }
 
-#[derive(Clone, Serialize, Default)]
-pub struct Resources {
-    coins: u32,
-    grain: u32,
-    meat: u32,
+#[derive(Clone, Copy, Serialize, Debug, PartialEq, Eq, Hash)]
+pub enum Resource {
+    Coin,
+    Meat,
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]

@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
 use super::{
-    challenge::Challenge, storybook::Story,
-    event_deck::EventCard, SearchToken, 
+    challenge::Challenge, effect::Effect, event_deck::EventCard,
+    storybook::Story, SearchToken,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Debug)]
 pub enum GamePhase {
@@ -11,10 +11,16 @@ pub enum GamePhase {
     MainActionPhase(Option<MainActionSubphase>, u32),
     ChallengePhase {
         challenge: Challenge,
-        added: Option<u32>,
+        skill: Option<u32>,
     },
-    SelectCrewMemberPhase(Option<usize>, String),
-    ExplorePhase(Story)
+    SelectCrewMemberPhase {
+        crew_ix: Option<usize>,
+        title: String,
+        #[serde(skip_serializing)]
+        callback: String,
+    },
+    ExplorePhase(Story),
+    ResolveEffectPhase(Effect),
 }
 
 #[derive(Clone, Serialize, Default, Debug)]

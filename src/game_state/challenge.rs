@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use super::{skill::Skill, Update, GameState};
+use super::{skill::Skill, Update, GameState, {effect::Effect}};
 
 #[derive(Clone, Serialize, Debug)]
 pub struct Challenge {
@@ -8,9 +8,9 @@ pub struct Challenge {
     pub amount: u32,
 
     #[serde(skip_serializing)]
-    pub if_fail: fn(&GameState) -> Update<GameState>,
+    pub if_fail: Vec<Effect>,
     #[serde(skip_serializing)]
-    pub if_succeed: fn(&GameState) -> Update<GameState>
+    pub if_succeed: Vec<Effect>
 }
 
 impl Default for Challenge {
@@ -18,8 +18,9 @@ impl Default for Challenge {
         Self {
             skill: Skill::Craft,
             amount: Default::default(),
-            if_fail: |gs| Ok(gs.clone()),
-            if_succeed: |gs| Ok(gs.clone())
+            //TODO
+            if_fail: vec![],
+            if_succeed: vec![]
         }
     }
 }

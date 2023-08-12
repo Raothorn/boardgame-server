@@ -17,19 +17,21 @@ pub struct SelectCrewMemberAction {
 #[typetag::serde(name = "selectCrewMemberAction")]
 impl Action for SelectCrewMemberAction {
     fn execute(&self, state: &GameState) -> Update<GameState> {
-        if let Gp::SelectCrewMemberPhase(None, action_ser) =
+        if let Gp::SelectCrewMemberPhase{crew_ix: None, title, callback} =
             state.phase()
         {
             match self.crew_ix {
                 // Crew member selected
                 Some(crew_ix) => {
-                    let action = super::get_action(&action_ser);
+                    let action = super::get_action(&callback);
+
                     Ok(state.clone())
                         .and_then(|g| {
-                            g.set_phase(Gp::SelectCrewMemberPhase(
-                                Some(crew_ix),
-                                "".to_owned(),
-                            ))
+                            g.set_phase(Gp::SelectCrewMemberPhase {
+                                crew_ix: Some(crew_ix),
+                                title,
+                                callback: "".to_owned(),
+                            })
                         })
                         .and_then(|g| action.execute(&g))
                         .and_then(|g| g.pop_phase())
