@@ -93,5 +93,3 @@ impl Crew {
 pub enum Status {
     Venom, Frightened, Weakend, Madness, LowMorale 
 }
-
-

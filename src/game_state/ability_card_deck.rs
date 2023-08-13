@@ -1,9 +1,9 @@
 use serde::Serialize;
 
-#[derive(Clone, Serialize, Default)]
+#[derive(Clone, Serialize, Default, Debug)]
 pub struct AbilityCard {
-    name: String,
-    deck_ix: u32,
+    pub name: String,
+    pub deck_ix: u32,
 
     modifiers: Vec<Modifier>,
 }
@@ -23,7 +23,14 @@ pub fn ability_card_deck() -> Vec<AbilityCard> {
     let card2 = AbilityCard::new("Focused Mind", 2);
     let card3 = AbilityCard::new("Counsel", 3);
 
-    vec![card1, card2, card3]
+    let mut other_deck = vec![card1, card2, card3];
+    let mut deck: Vec<_> = (0..100)
+        .into_iter()
+        .map(|_| AbilityCard::new("SomeCard", 1))
+        .collect();
+
+    deck.append(&mut other_deck);
+    deck
 }
 
 type Modifier = ();

@@ -23,12 +23,17 @@ impl Action for SelectStoryOptionAction {
 
             match story.get_option(self.option_ix) {
                 Some(option) => {
+
+                    if option.disabled(state) {
+                        return Err("Option is disabled".to_owned());
+                    } 
                     let mut option_effects = option.effects.clone();
                     effects.append(&mut option_effects);
                 }
                 None => (),
             };
             resolve_effects(state, effects)
+
         } else {
             Err("Wrong phase".to_owned())
         }

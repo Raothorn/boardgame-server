@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, ops::RangeInclusive};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -8,6 +8,7 @@ use super::{
     challenge::Challenge,
     crew::Status,
     game_phase::{GamePhase, MainActionSubphase},
+    modifier::Modifier,
     GameState, Resource, Update,
 };
 
@@ -18,30 +19,27 @@ pub enum Effect {
     TakeHealthDamage(u32),
     TakeStatus(Status),
     TurnToStory(String),
+    GainModifier(Box<Modifier>),
+    FateConsequence(RangeInclusive<u32>, Box<Effect>),
+    ReceiveQuest(u32),
     ReturnToShip,
 }
 
 impl Effect {
     pub fn resolve(&self, state: GameState) -> Update<GameState> {
         match self {
-            Effect::TurnToStory(story_ix) => {
-                state.map.storybook.story(story_ix).clone().and_then(
-                    |story| {
-                        state.set_phase(GamePhase::ExplorePhase(
-                            story.clone(),
-                        ))
-                    },
-                )
-            }
+            Effect::TurnToStory(story_ix) => state
+                .map
+                .storybook
+                .story(story_ix)
+                .clone()
+                .and_then(|story| state.set_phase(GamePhase::ExplorePhase(story.clone()))),
 
             Effect::ReturnToShip => state.pop_phase().and_then(|g| {
-                if let GamePhase::MainActionPhase(
-                    Some(MainActionSubphase::Explore),
-                    action_ct,
-                ) = g.phase()
+                if let GamePhase::MainActionPhase(Some(MainActionSubphase::Explore), action_ct) =
+                    g.phase()
                 {
-                    let phase =
-                        GamePhase::MainActionPhase(None, action_ct);
+                    let phase = GamePhase::MainActionPhase(None, action_ct);
 
                     g.set_phase(phase)
                 } else {
@@ -49,13 +47,9 @@ impl Effect {
                 }
             }),
 
-            Effect::GainResource(resource, amount) => {
-                state.gain_resource(*resource, *amount)
-            }
+            Effect::GainResource(resource, amount) => state.gain_resource(*resource, *amount),
 
-            Effect::TryChallenge(challenge) => {
-                state.challenge(challenge.clone())
-            }
+            Effect::TryChallenge(challenge) => state.challenge(challenge.clone()),
 
             Effect::TakeStatus(status) => {
                 let action = TakeStatusAction { status: *status };
@@ -73,20 +67,29 @@ impl Effect {
                 })
             }
 
-            _ => state.push_phase(GamePhase::ResolveEffectPhase(
-                self.clone(),
-            )),
+            Effect::FateConsequence(range, consequence) => {
+                state.draw_fate().and_then(|(g, result)| {
+                    if range.contains(&result) {
+                        consequence.resolve(g)
+                    } else {
+                        Ok(g)
+                    }
+                })
+            }
+
+            Effect::ReceiveQuest(ix) => state.add_quest(*ix),
+
+            Effect::GainModifier(modifier) => state.add_modifier(modifier),
+
+            _ => state.push_phase(GamePhase::ResolveEffectPhase(self.clone())),
         }
     }
 }
 
-pub fn resolve_effects(
-    state: &GameState,
-    effects: Vec<Effect>,
-) -> Update<GameState> {
-    effects.into_iter().fold(Ok(state.clone()), |g, eff| {
-        g.and_then(|g| eff.resolve(g))
-    })
+pub fn resolve_effects(state: &GameState, effects: Vec<Effect>) -> Update<GameState> {
+    effects
+        .into_iter()
+        .fold(Ok(state.clone()), |g, eff| g.and_then(|g| eff.resolve(g)))
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -98,8 +101,11 @@ pub struct TakeStatusAction {
 impl Action for TakeStatusAction {
     fn execute(&self, state: &GameState) -> Update<GameState> {
         // TODO add string to phase
-        if let GamePhase::SelectCrewMemberPhase{crew_ix: Some(crew_ix), title: _, callback: _} =
-            state.phase()
+        if let GamePhase::SelectCrewMemberPhase {
+            crew_ix: Some(crew_ix),
+            title: _,
+            callback: _,
+        } = state.phase()
         {
             state
                 .clone()
@@ -111,10 +117,7 @@ impl Action for TakeStatusAction {
 }
 
 impl Display for TakeStatusAction {
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-    ) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Take Status")
     }
 }

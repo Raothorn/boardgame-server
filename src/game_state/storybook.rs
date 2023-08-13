@@ -43,8 +43,26 @@ impl Story {
 pub struct StoryOption {
     text: Str,
 
+    required_keyword: Option<String>,
+    forbidden_keyword: Option<String>,
+
     #[serde(skip_serializing)]
     pub effects: Vec<Effect>,
+}
+
+impl StoryOption {
+    pub fn disabled(&self, state: &GameState) -> bool {
+        let keywords = state.keywords(); 
+
+        if let Some(required) = &self.required_keyword {
+            return !(keywords.contains(&required));
+        } 
+        else if let Some(forbidden) = &self.forbidden_keyword {
+            return keywords.contains(&forbidden); 
+        } else {
+            return false;
+        }
+    }
 }
 
 type StoryIx = String;
@@ -69,45 +87,56 @@ fn story2() -> Story {
                 a cave.</span> ";
 
     let a = StoryOption {
-        text: "Search the skeleton.",
+        text: "Search the skeleton. (Unavailable if keyword PINK)",
+        required_keyword: None,
+        forbidden_keyword: Some("PINK".to_owned()),
         effects: vec![Effect::TurnToStory("133".to_owned())],
     };
-    // TODO option b
+    
+    let b = StoryOption {
+        text: "Open the door. (Requires keyword IRON)",
+        required_keyword: Some("IRON".to_owned()),
+        forbidden_keyword: None,
+        effects: vec![Effect::TurnToStory("2.1".to_owned())]
+    };
+
     let c = StoryOption {
         text: "Leave",
+        required_keyword: None,
+        forbidden_keyword: None,
         effects: vec![Effect::ReturnToShip],
     };
 
     Story {
         main_text,
         keyword_links: HashMap::new(),
-        options: vec![a, c],
+        options: vec![a, b, c],
         effects: Vec::new(),
     }
 }
 
-fn story3() -> Story {
-    let links = vec![
-        ("SHELL".to_owned(), "3.11".to_owned()),
-        ("MIGHT".to_owned(), "3.12".to_owned()),
-    ];
-
-    let main_text = "The quiet shore is lined with fir trees, their border
-    thick but penetrable. Within the forest lies an encampment of Pann traders
-    with hair like polished Platinum<br> <span class='storybook_bold'>You find a
-    camp of Pann traders.</span>
-
-    <i>Draw 7 market cards. You may buy any of them. You may use material as 
-    coins when you are purchasing these cards. Return to the ship.";
-
-    Story {
-        main_text,
-        keyword_links: links.into_iter().collect(),
-        options: Vec::new(),
-        //TODO market effect
-        effects: vec![Effect::ReturnToShip],
-    }
-}
+// fn story3() -> Story {
+//     let links = vec![
+//         ("SHELL".to_owned(), "3.11".to_owned()),
+//         ("MIGHT".to_owned(), "3.12".to_owned()),
+//     ];
+//
+//     let main_text = "The quiet shore is lined with fir trees, their border
+//     thick but penetrable. Within the forest lies an encampment of Pann traders
+//     with hair like polished Platinum<br> <span class='storybook_bold'>You find a
+//     camp of Pann traders.</span>
+//
+//     <i>Draw 7 market cards. You may buy any of them. You may use material as 
+//     coins when you are purchasing these cards. Return to the ship.";
+//
+//     Story {
+//         main_text,
+//         keyword_links: links.into_iter().collect(),
+//         options: Vec::new(),
+//         //TODO market effect
+//         effects: vec![Effect::ReturnToShip],
+//     }
+// }
 
 fn story133() -> Story {
     let main_text = 
@@ -127,7 +156,7 @@ fn story133() -> Story {
         Effect::TakeHealthDamage(1),
         Effect::TakeStatus(Status::Venom),
         Effect::GainResource(Resource::Coin, 4),
-        // TODO venom and quest
+        Effect::ReceiveQuest(155),
     ];
 
     Story {

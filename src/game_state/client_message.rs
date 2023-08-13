@@ -1,9 +1,12 @@
 use serde::Serialize;
 
-use super::AbilityCard;
+use super::SerialCard;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub enum ClientMessage {
     GainCommandPoints { amount: u32 },
-    DrewAbilityCard { card: AbilityCard }
+    DrewAbilityCard { card: SerialCard },
+    DrewFate { result: u32 },
+    ModifierTriggered { text: String, card: SerialCard }
+    // TODO recieved quest message
 }

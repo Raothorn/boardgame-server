@@ -5,7 +5,7 @@ use crate::game_state::{GamePhase, GameState, Update};
 
 #[derive(Deserialize, Serialize)]
 pub struct SelectEventOptionAction {
-    option_ix: usize,
+    option_ix: Option<usize>,
     #[allow(dead_code)]
     player_ix: usize,
 }
@@ -16,27 +16,21 @@ impl Action for SelectEventOptionAction {
         let mut gs = state.clone();
 
         if let GamePhase::EventPhase(Some(ref card)) = gs.phase() {
-            let option = card.options.get(self.option_ix);
-            match option {
-                Some(option) => {
-                    gs.event_card_deck.add_to_discard(card);
-                    Ok(gs)
-                        .and_then(|g| {
-                            g.set_phase(GamePhase::MainActionPhase(
-                                None, 0,
-                            ))
-                        })
-                        .and_then(|g| {
-                            option.effects.iter().fold(
-                                Ok(g),
-                                |g, eff| {
-                                    g.and_then(|g| eff.resolve(g))
-                                },
-                            )
-                        })
+            let effects = match self.option_ix {
+                Some(option_ix) => {
+                    let option = card.options.get(option_ix).unwrap();
+                    option.effects.clone()
                 }
-                None => Err("option index not valid".to_owned()),
-            }
+                None => card.effects.clone(),
+            };
+            gs.event_card_deck.add_to_discard(card);
+            Ok(gs)
+                .and_then(|g| g.set_phase(GamePhase::MainActionPhase(None, 0)))
+                .and_then(|g| {
+                    effects
+                        .iter()
+                        .fold(Ok(g), |g, eff| g.and_then(|g| eff.resolve(g)))
+                })
         } else {
             Err("wrong phase".to_owned())
         }
@@ -44,10 +38,7 @@ impl Action for SelectEventOptionAction {
 }
 
 impl std::fmt::Display for SelectEventOptionAction {
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-    ) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Select Event Option")
     }
 }

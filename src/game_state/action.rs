@@ -19,6 +19,7 @@ mod select_crew_member_action;
 mod explore_action;
 mod select_story_option_action;
 mod confirm_actions;
+mod end_turn;
 
 #[typetag::serde(tag = "actionType", content = "actionData")]
 pub trait Action: fmt::Display {

@@ -1,6 +1,6 @@
 use super::{
     challenge::Challenge, effect::Effect, event_deck::EventCard,
-    storybook::Story, SearchToken,
+    storybook::Story, SearchToken, market::MarketCard,
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +20,7 @@ pub enum GamePhase {
         callback: String,
     },
     ExplorePhase(Story),
+    MarketPhase(MarketPhase),
     ResolveEffectPhase(Effect),
 }
 
@@ -37,4 +38,9 @@ pub enum MainActionSubphase {
     #[default]
     Travel,
     Explore,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct MarketPhase {
+    cards: Vec<MarketCard>,
 }

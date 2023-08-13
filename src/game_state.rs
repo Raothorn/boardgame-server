@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize, Serializer};
+use std::{collections::HashMap, ops::RangeInclusive};
+
 mod ability_card_deck;
 pub mod action;
 mod challenge;
@@ -11,33 +11,35 @@ pub mod effect;
 mod event_deck;
 mod game_phase;
 mod map;
+mod market;
 mod player;
+mod quest;
 mod skill;
 mod storybook;
 
+use crate::game_state::modifier::ModifierTrigger;
+
 use self::{
     ability_card_deck::ability_card_deck,
-    event_deck::event_deck,
+    client_message::ClientMessage,
+    effect::{resolve_effects, Effect},
     map::SerialMap,
     map::{GameMap, MapData},
+    market::MarketCard,
+    modifier::Modifier,
     storybook::Storybook,
 };
 use ability_card_deck::AbilityCard;
 use challenge::Challenge;
-use client_message::ClientMessage;
 use crew::Crew;
 use deck::Deck;
 use event_deck::EventCard;
 use game_phase::GamePhase;
 use player::Player;
-use skill::Skill;
 
 #[derive(Clone, Serialize)]
 pub struct GameState {
-    #[serde(
-        serialize_with = "serialize_gamestate_phase",
-        rename = "phase"
-    )]
+    #[serde(serialize_with = "serialize_gamestate_phase", rename = "phase")]
     phase_stack: Vec<GamePhase>,
 
     players: Vec<Player>,
@@ -49,19 +51,24 @@ pub struct GameState {
     resources: HashMap<Resource, u32>,
     message_queue: Vec<ClientMessage>,
 
+    #[serde(serialize_with = "serialize_quests", rename = "keywords")]
+    quests: HashMap<u32, String>,
+
+    // TODO probably refactor decks into it's own struct
     #[serde(skip_serializing)]
     ability_deck: Deck<AbilityCard>,
     #[serde(skip_serializing)]
     search_token_deck: Deck<SearchToken>,
     #[serde(skip_serializing)]
     event_card_deck: Deck<EventCard>,
+    #[serde(skip_serializing)]
+    market_deck: Deck<MarketCard>,
+
+    modifiers: Vec<Modifier>,
 }
 
 // Serializers
-fn serialize_gamestate_phase<S>(
-    phase_stack: &[GamePhase],
-    ser: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_gamestate_phase<S>(phase_stack: &[GamePhase], ser: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -73,6 +80,18 @@ where
     S: Serializer,
 {
     SerialMap::from(map.clone()).serialize(ser)
+}
+
+fn serialize_quests<S>(quests: &HashMap<u32, String>, ser: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    quests
+        .clone()
+        .into_iter()
+        .map(|(_, v)| v)
+        .collect::<Vec<_>>()
+        .serialize(ser)
 }
 
 // Impl
@@ -100,11 +119,12 @@ impl GameState {
             resources: [(Resource::Coin, 0), (Resource::Meat, 0)]
                 .into_iter()
                 .collect(),
+            quests: HashMap::new(),
             ability_deck: Deck::new(ability_card_deck()),
-            search_token_deck: Deck::new(
-                (1..8).map(SearchToken).collect(),
-            ),
-            event_card_deck: Deck::new(event_deck()),
+            search_token_deck: Deck::new((1..8).map(SearchToken).collect()),
+            event_card_deck: Deck::default(),
+            market_deck: Deck::default(),
+            modifiers: Vec::new(),
             message_queue: Vec::new(),
         }
     }
@@ -145,19 +165,12 @@ impl GameState {
         })
     }
 
-    fn gain_resource(
-        self,
-        resource: Resource,
-        amount: i32,
-    ) -> Update<Self> {
-
+    fn gain_resource(self, resource: Resource, amount: i32) -> Update<Self> {
         let mut gs = self.clone();
         let prev_amount: i32 = gs.resources[&resource].try_into().unwrap();
         if prev_amount + amount >= 0 {
-            gs.resources.insert(
-                resource,
-                (prev_amount + amount).try_into().unwrap(),
-            );
+            gs.resources
+                .insert(resource, (prev_amount + amount).try_into().unwrap());
         } else {
             gs.resources.insert(resource, 0);
         }
@@ -165,73 +178,72 @@ impl GameState {
         Ok(gs)
     }
 
-    fn give_command_tokens(
-        self,
-        player_ix: usize,
-        amount: u32,
-    ) -> Update<GameState> {
+    fn add_quest(self, index: u32) -> Update<Self> {
+        let mut gs = self.clone();
+        gs.quests.insert(index, quest::get_quest(index));
+        Ok(gs)
+    }
+
+    fn give_command_tokens(self, player_ix: usize, amount: u32) -> Update<GameState> {
         let mut gs = self.clone();
         if let Some(player) = gs.players.get_mut(player_ix) {
             player.command_tokens += amount;
-            Ok(gs).and_then(|g| {
-                g.queue_message(ClientMessage::GainCommandPoints {
-                    amount,
-                })
-            })
+            Ok(gs).and_then(|g| g.queue_message(&ClientMessage::GainCommandPoints { amount }))
         } else {
             Err("Player does not exist".to_owned())
         }
     }
 
-
-
-
     fn keywords(&self) -> Vec<String> {
-        Vec::new()
+        self.quests.clone().into_iter().map(|(_, v)| v).collect()
     }
 
-    fn apply_search_tokens(
-        self,
-        _token: &SearchToken,
-    ) -> Update<GameState> {
+    fn apply_search_tokens(self, _token: &SearchToken) -> Update<GameState> {
         println!("Gaining meat!");
         self.gain_resource(Resource::Meat, 1)
     }
 
-    fn draw_cards(
-        self,
-        player_ix: usize,
-        amount: u32,
-    ) -> Update<GameState> {
-        let gamestate = (0..amount).into_iter().fold(
-            Ok(self.clone()),
-            |gs, _| {
-                gs.and_then(|g| match g.ability_deck.clone().draw() {
-                    Ok((deck, card)) => g
-                        .update_player(player_ix, |p| {
-                            p.add_card(card.clone())
-                        })
+    fn draw_cards(self, player_ix: usize, amount: u32) -> Update<GameState> {
+        let gamestate = (0..amount).into_iter().fold(Ok(self.clone()), |gs, _| {
+            gs.and_then(|g| match g.ability_deck.clone().draw() {
+                Ok((deck, card)) => {
+                    let serial_card = SerialCard {
+                        label: card.name.clone(),
+                        deck: "ability_card_deck".to_owned(),
+                        index: card.deck_ix,
+                    };
+                    let message = ClientMessage::DrewAbilityCard { card: serial_card };
+
+                    g.update_player(player_ix, |p| p.add_card(card.clone()))
                         .map(|g| GameState {
                             ability_deck: deck,
                             ..g
                         })
-                        .and_then(|g| {
-                            g.append_message(
-                                ClientMessage::DrewAbilityCard {
-                                    card: card.clone(),
-                                },
-                            )
-                        }),
-                    Err(err) => Err(err),
-                })
-            },
-        );
+                        .and_then(|g| g.queue_message(&message))
+                }
+                Err(err) => Err(err),
+            })
+        });
         gamestate
     }
 
-    fn append_message(self, msg: ClientMessage) -> Update<GameState> {
+    // Filt is the ones we want to *remove*
+    fn filter_out_modifiers(self, filt: fn(&Modifier) -> bool) -> Update<Self> {
         let mut gs = self.clone();
-        gs.message_queue.push(msg);
+
+        gs.modifiers = gs.modifiers.into_iter().filter(|m| !filt(m)).collect();
+        Ok(gs)
+    }
+
+    fn add_modifier(self, modifier: &Modifier) -> Update<Self> {
+        let mut gs = self.clone();
+        gs.modifiers.push(modifier.clone());
+        Ok(gs)
+    }
+
+    fn queue_message(self, msg: &ClientMessage) -> Update<GameState> {
+        let mut gs = self.clone();
+        gs.message_queue.push(msg.clone());
         Ok(gs)
     }
 
@@ -241,11 +253,32 @@ impl GameState {
         Ok(gs)
     }
 
-    fn discard_card(
-        self,
-        player_ix: usize,
-        card_ix: usize,
-    ) -> Update<GameState> {
+    fn draw_fate(self) -> Update<(Self, u32)> {
+        // TODO random numbers...
+        let result = 2;
+
+        let gs = self.clone();
+        let modifiers = gs.modifiers.iter().filter(|m| match &m.trigger {
+            ModifierTrigger::DrawFate(range) => range.contains(&result),
+            _ => false,
+        });
+
+        let modifier_effects = modifiers.clone().map(|m| m.effect.clone()).collect();
+
+        let modifier_messages = modifiers.clone().map(|m| m.trigger_text.clone());
+
+        println!("{:?}", modifier_messages);
+
+        (Ok(gs.clone()))
+            .and_then(|g| {
+                modifier_messages.fold(Ok(g), |g, m| g.and_then(|g| g.queue_message(&m)))
+            })?
+            .queue_message(&ClientMessage::DrewFate { result })
+            .and_then(|g| resolve_effects(&g, modifier_effects))
+            .map(|g| (g, result))
+    }
+
+    fn discard_card(self, player_ix: usize, card_ix: usize) -> Update<GameState> {
         if player_ix >= self.players.len() {
             Err("".to_owned())
         } else {
@@ -261,12 +294,6 @@ impl GameState {
                 Err(err) => Err(err),
             }
         }
-    }
-
-    fn queue_message(self, msg: ClientMessage) -> Update<GameState> {
-        let mut gs = self.clone();
-        gs.message_queue.push(msg);
-        Ok(gs)
     }
 
     fn dequeue_message(self) -> Update<GameState> {
@@ -285,13 +312,11 @@ impl GameState {
         if player_ix > self.players.len() {
             Err("invalid player ix".to_owned())
         } else {
-            player_update(self.players[player_ix].clone()).map(
-                |player_| {
-                    let mut players = self.players.clone();
-                    players[player_ix] = player_;
-                    GameState { players, ..self }
-                },
-            )
+            player_update(self.players[player_ix].clone()).map(|player_| {
+                let mut players = self.players.clone();
+                players[player_ix] = player_;
+                GameState { players, ..self }
+            })
         }
     }
 
@@ -320,21 +345,13 @@ impl GameState {
         Ok(gs)
     }
 
-    fn equip_ability_card(
-        self,
-        hand_ix: usize,
-        crew_ix: usize,
-    ) -> Update<GameState> {
+    fn equip_ability_card(self, hand_ix: usize, crew_ix: usize) -> Update<GameState> {
         let mut gs = self.clone();
 
         // TODO validate
         let card = gs.players[0].hand.remove(hand_ix).clone();
 
-        Ok(gs).and_then(|g| {
-            g.update_crew(crew_ix, |c| {
-                c.equip_ability_card(card.clone())
-            })
-        })
+        Ok(gs).and_then(|g| g.update_crew(crew_ix, |c| c.equip_ability_card(card.clone())))
     }
 }
 
@@ -356,5 +373,42 @@ pub enum ShipRoom {
 
 #[derive(Clone, Serialize, Copy, Default, Debug)]
 pub struct SearchToken(u32);
+
+mod modifier {
+    // TODO refactor to own file
+    use super::*;
+
+    #[derive(Clone, Debug, Serialize)]
+    pub struct Modifier {
+        pub lifetime: ModifierLifetime,
+        pub trigger: ModifierTrigger,
+        pub effect: Effect,
+
+        pub trigger_text: ClientMessage,
+
+        #[serde(skip_serializing)]
+        pub condition: fn(&GameState) -> bool,
+    }
+
+    #[derive(Clone, Debug, Serialize)]
+    pub enum ModifierTrigger {
+        DrawFate(RangeInclusive<u32>),
+    }
+
+    #[derive(Clone, Debug, Serialize)]
+    pub enum ModifierLifetime {
+        ThisTurn,
+    }
+
+    #[derive(Clone, Serialize, Debug)]
+    pub enum ModifierScope {}
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct SerialCard {
+    label: String,
+    deck: String,
+    index: u32,
+}
 
 type Update<T> = Result<T, String>;

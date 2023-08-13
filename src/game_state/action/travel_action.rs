@@ -25,9 +25,11 @@ impl Action for TravelAction {
                 Err("You can't move to the same area".to_owned())
             } else {
                 let phase = Gp::MainActionPhase(None, action_ct);
+                // This is maybe problematic because we need to draw fate first?
                 Ok(state.clone())
-                    .and_then(|g| g.move_ship(self.to_area))
                     .and_then(|g| g.set_phase(phase))
+                    .and_then(|g| g.draw_fate())
+                    .and_then(|(g, _)| g.move_ship(self.to_area))
             }
         } else {
             Err("wrong phase".to_owned())
